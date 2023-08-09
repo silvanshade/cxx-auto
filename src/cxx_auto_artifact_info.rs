@@ -38,7 +38,7 @@ pub struct CxxAutoArtifactInfo {
 
 #[cfg(feature = "alloc")]
 impl CxxAutoArtifactInfo {
-    pub fn emit_file(&self) -> syn::File {
+    pub fn emit_file(&self, auto_out_dir: &::std::path::Path) -> syn::File {
         let span = Span::call_site();
         let ident: &syn::Ident = &syn::Ident::new(self.rust_name, Span::call_site());
         let align = &proc_macro2::Literal::usize_unsuffixed(self.align);
@@ -47,7 +47,19 @@ impl CxxAutoArtifactInfo {
             let all_static = false;
             &emit_generics(self, all_static)
         };
-        let path_descendants = self.path_descendants.iter().map(|name| syn::Ident::new(name, span));
+        let items_path_descendants = self
+            .path_descendants
+            .iter()
+            .map(|descendant| {
+                let path = auto_out_dir.join(descendant).with_extension("rs");
+                let path = path.to_string_lossy();
+                let ident = syn::Ident::new(descendant, span);
+                syn::parse_quote! {
+                    #[path = #path]
+                    pub(crate) mod #ident;
+                }
+            })
+            .collect::<alloc::vec::Vec<syn::Item>>();
         let item_struct = emit_struct(self, align, size, ident, generics_binder, generics);
         let item_impl_cxx_extern_type = emit_impl_cxx_extern_type(self, ident, generics_binder, generics);
         let item_impl_drop = emit_impl_drop(self, ident, generics_binder, generics);
@@ -64,7 +76,7 @@ impl CxxAutoArtifactInfo {
         let item_mod_cxx_bridge = emit_item_mod_cxx_bridge(self, ident, generics);
         let item_info_test_module = emit_info_test_module(self, ident, align, size);
         syn::parse_quote! {
-            #(pub(crate) mod #path_descendants;)*
+            #(#items_path_descendants)*
             #item_struct
             #item_impl_cxx_extern_type
             #item_impl_drop
@@ -131,7 +143,7 @@ impl CxxAutoArtifactInfo {
             std::fs::create_dir_all(parent)?;
         }
         let path = auto_out_dir.with_extension("rs");
-        let file = self.emit_file();
+        let file = self.emit_file(&auto_out_dir);
         let tokens = file.to_token_stream();
         let contents = rust_format::RustFmt::default().format_tokens(tokens)?;
         std::fs::write(path, contents)?;
@@ -369,7 +381,7 @@ fn emit_impl_moveit_copy_new(
 ) -> Option<syn::ItemImpl> {
     if info.is_rust_copy_new {
         Some(syn::parse_quote! {
-            unsafe impl #generics_binder ::moveref::CopyNew for #ident #generics {
+            impl #generics_binder ::moveref::CopyNew for #ident #generics {
                 #[inline]
                 unsafe fn copy_new(that: &Self, this: ::core::pin::Pin<&mut ::core::mem::MaybeUninit<Self>>) {
                     let this = this.get_unchecked_mut().as_mut_ptr();
@@ -391,7 +403,7 @@ fn emit_impl_moveit_move_new(
 ) -> Option<syn::ItemImpl> {
     if info.is_rust_move_new {
         Some(syn::parse_quote! {
-            unsafe impl #generics_binder ::moveref::MoveNew for #ident #generics {
+            impl #generics_binder ::moveref::MoveNew for #ident #generics {
                 #[inline]
                 unsafe fn move_new(
                     that: ::core::pin::Pin<::moveref::MoveRef<'_, Self>>,
@@ -418,6 +430,7 @@ fn emit_impl_partial_eq(
     if info.is_rust_partial_eq {
         let ne: Option<syn::ImplItemFn> = if info.cxx_has_operator_not_equal {
             Some(syn::parse_quote! {
+                #[allow(clippy::partialeq_ne_impl)]
                 #[inline]
                 fn ne(&self, other: &Self) -> bool {
                     self::ffi::cxx_operator_not_equal(self, other)
@@ -544,14 +557,7 @@ fn emit_impl_ord(
                 #[inline]
                 fn cmp(&self, other: &Self) -> ::core::cmp::Ordering {
                     let res = self::ffi::cxx_operator_three_way_comparison(self, other);
-                    if res < 0 {
-                        ::core::cmp::Ordering::Less
-                    } else if res > 0 {
-                        ::core::cmp::Ordering::Greater
-                    } else {
-                        ::core::assert_eq!(res, 0);
-                        ::core::cmp::Ordering::Equal
-                    }
+                    res.cmp(&0)
                 }
             }
         })
@@ -738,6 +744,7 @@ fn emit_item_mod_cxx_bridge(info: &CxxAutoArtifactInfo, ident: &syn::Ident, gene
     syn::parse_quote! {
         #[cxx::bridge]
         pub(crate) mod ffi {
+            #![allow(clippy::needless_lifetimes)]
             #[namespace = #cxx_namespace]
             unsafe extern "C++" {
                 include!(#cxx_include);
