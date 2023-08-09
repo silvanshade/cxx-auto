@@ -8,15 +8,18 @@ use rust_format::Formatter;
 use std::collections::BTreeSet;
 
 #[cfg(feature = "std")]
-pub(crate) fn process_src_abi_module(abi_dir: &std::path::Path, abi_crate_src_dir: &std::path::Path) -> BoxResult<()> {
-    let src_dir = abi_crate_src_dir;
-    let abi_dir_walker = walkdir::WalkDir::new(abi_dir).min_depth(1);
+pub(crate) fn process_src_auto_module(
+    auto_dir: &std::path::Path,
+    auto_crate_src_dir: &std::path::Path,
+) -> BoxResult<()> {
+    let src_dir = auto_crate_src_dir;
+    let auto_dir_walker = walkdir::WalkDir::new(auto_dir).min_depth(1);
     let skip_paths = std::collections::BTreeSet::new();
     let mut walked_path_components = ::alloc::vec::Vec::new();
 
-    process_src_abi_sub_module(
+    process_src_auto_sub_module(
         &src_dir,
-        abi_dir_walker.into_iter(),
+        auto_dir_walker.into_iter(),
         skip_paths,
         &mut walked_path_components,
     )?;
@@ -28,7 +31,7 @@ pub(crate) fn process_src_abi_module(abi_dir: &std::path::Path, abi_crate_src_di
         let mut item_mods = ::alloc::vec![];
         emit_item_mods_for_path_descendants(
             &mut std::collections::BTreeSet::new(),
-            abi_dir,
+            auto_dir,
             &mut path_descendants,
             &mut item_mods,
         )?;
@@ -50,13 +53,13 @@ pub(crate) fn process_src_abi_module(abi_dir: &std::path::Path, abi_crate_src_di
 }
 
 #[cfg(feature = "std")]
-fn process_src_abi_sub_module(
+fn process_src_auto_sub_module(
     src_dir: &std::path::Path,
-    mut abi_dir_walker: impl Iterator<Item = walkdir::Result<walkdir::DirEntry>>,
+    mut auto_dir_walker: impl Iterator<Item = walkdir::Result<walkdir::DirEntry>>,
     mut skip_paths: std::collections::BTreeSet<std::path::PathBuf>,
     walked_path_file_components: &mut ::alloc::vec::Vec<::alloc::vec::Vec<::alloc::string::String>>,
 ) -> BoxResult<()> {
-    if let Some(entry) = abi_dir_walker.next().transpose()? {
+    if let Some(entry) = auto_dir_walker.next().transpose()? {
         let path = entry.path();
 
         if !skip_paths.contains(path) {
@@ -81,7 +84,7 @@ fn process_src_abi_sub_module(
             if let Some(path) = &path_file {
                 skip_paths.insert(path.to_path_buf());
                 let text = std::fs::read_to_string(&path)?;
-                let data = serde_json::from_str::<crate::CxxAbiEntry>(&text)?;
+                let data = serde_json::from_str::<crate::CxxAutoEntry>(&text)?;
                 items_write_module =
                     data.emit_items_write_module_for_file(path_components.iter(), path_descendants.iter());
                 item_mod_cxx_bridge.extend(data.emit_item_mod_cxx_bridge());
@@ -89,7 +92,7 @@ fn process_src_abi_sub_module(
                 items_write_module.push(emit_item_write_module_for_dir(&path_components, &path_descendants));
             }
 
-            let abi_sub_module_path = src_dir.join(
+            let auto_sub_module_path = src_dir.join(
                 [::alloc::string::String::from("auto")]
                     .iter()
                     .chain(&path_components)
@@ -98,18 +101,18 @@ fn process_src_abi_sub_module(
 
             walked_path_file_components.push(path_components);
 
-            if let Some(parent) = abi_sub_module_path.parent() {
+            if let Some(parent) = auto_sub_module_path.parent() {
                 std::fs::create_dir_all(parent)?;
             }
 
-            write_abi_sub_module(
-                &abi_sub_module_path.with_extension("rs"),
+            write_auto_sub_module(
+                &auto_sub_module_path.with_extension("rs"),
                 item_mods,
                 item_mod_cxx_bridge,
                 items_write_module,
             )?;
         }
-        process_src_abi_sub_module(src_dir, abi_dir_walker, skip_paths, walked_path_file_components)?;
+        process_src_auto_sub_module(src_dir, auto_dir_walker, skip_paths, walked_path_file_components)?;
     }
     Ok(())
 }
@@ -139,7 +142,7 @@ fn emit_item_write_module_for_dir(
         pub(crate) fn write_module() -> ::cxx_auto::BoxResult<()> {
             let path_components = &[#(#path_components),*];
             let path_descendants = &[#(#path_descendants),*];
-            ::cxx_auto::CxxAbiArtifactInfo::write_module_for_dir(path_components, path_descendants)
+            ::cxx_auto::CxxAutoArtifactInfo::write_module_for_dir(path_components, path_descendants)
         }
     }
 }
@@ -213,7 +216,7 @@ fn relativized_components_from_path(path: &std::path::Path) -> BoxResult<::alloc
 }
 
 #[cfg(feature = "std")]
-fn write_abi_sub_module(
+fn write_auto_sub_module(
     path: &std::path::Path,
     item_mods: ::alloc::vec::Vec<syn::ItemMod>,
     item_mod_cxx_bridge: ::alloc::vec::Vec<syn::Item>,

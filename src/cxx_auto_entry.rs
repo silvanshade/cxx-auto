@@ -2,7 +2,7 @@ use serde::Deserialize;
 
 #[cfg(feature = "alloc")]
 #[derive(Deserialize)]
-pub struct CxxAbiEntry<'ctx> {
+pub struct CxxAutoEntry<'ctx> {
     cxx_include: &'ctx str,
     cxx_proxy_include: Option<&'ctx str>,
     cxx_namespace: &'ctx str,
@@ -14,7 +14,7 @@ pub struct CxxAbiEntry<'ctx> {
 }
 
 #[cfg(feature = "alloc")]
-impl<'ctx> CxxAbiEntry<'ctx> {
+impl<'ctx> CxxAutoEntry<'ctx> {
     pub fn cxx_name(&self) -> &str {
         self.cxx_name.unwrap_or(self.rust_name)
     }
@@ -37,7 +37,7 @@ impl<'ctx> CxxAbiEntry<'ctx> {
         };
         ::alloc::vec![
             syn::parse_quote! {
-                fn artifact_info() -> ::cxx_auto::CxxAbiArtifactInfo {
+                fn artifact_info() -> ::cxx_auto::CxxAutoArtifactInfo {
                     let path_components = vec![#(#path_components),*];
                     let path_descendants = vec![#(#path_descendants),*];
                     let cxx_include = #cxx_include;
@@ -77,7 +77,7 @@ impl<'ctx> CxxAbiEntry<'ctx> {
                     let is_rust_partial_ord = self::ffi::rust_should_impl_partial_ord();
                     let is_rust_ord = self::ffi::rust_should_impl_ord();
                     let is_rust_hash = self::ffi::rust_should_impl_hash();
-                    ::cxx_auto::CxxAbiArtifactInfo {
+                    ::cxx_auto::CxxAutoArtifactInfo {
                         path_components,
                         path_descendants,
                         cxx_include,

@@ -2,7 +2,7 @@ use proc_macro2::Span;
 use syn::punctuated::Punctuated;
 
 #[cfg(feature = "alloc")]
-pub struct CxxAbiArtifactInfo {
+pub struct CxxAutoArtifactInfo {
     pub path_components: ::alloc::vec::Vec<&'static str>,
     pub path_descendants: ::alloc::vec::Vec<&'static str>,
     pub cxx_include: &'static str,
@@ -37,7 +37,7 @@ pub struct CxxAbiArtifactInfo {
 }
 
 #[cfg(feature = "alloc")]
-impl CxxAbiArtifactInfo {
+impl CxxAutoArtifactInfo {
     pub fn emit_file(&self) -> syn::File {
         let span = Span::call_site();
         let ident: &syn::Ident = &syn::Ident::new(self.rust_name, Span::call_site());
@@ -88,12 +88,12 @@ impl CxxAbiArtifactInfo {
     pub fn write_module_for_dir(path_components: &[&str], path_descendants: &[&str]) -> crate::BoxResult<()> {
         use quote::ToTokens;
         use rust_format::Formatter;
-        let abi_out_dir_root = std::path::Path::new("src/auto");
-        let abi_out_dir = abi_out_dir_root.join(std::path::PathBuf::from_iter(path_components));
-        if let Some(parent) = abi_out_dir.parent() {
+        let auto_out_dir_root = std::path::Path::new("src/auto");
+        let auto_out_dir = auto_out_dir_root.join(std::path::PathBuf::from_iter(path_components));
+        if let Some(parent) = auto_out_dir.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        let path = abi_out_dir.with_extension("rs");
+        let path = auto_out_dir.with_extension("rs");
         let file: syn::File = {
             let span = Span::call_site();
             let path_descendants = path_descendants
@@ -113,12 +113,12 @@ impl CxxAbiArtifactInfo {
     pub fn write_module_for_file(&self) -> crate::BoxResult<()> {
         use quote::ToTokens;
         use rust_format::Formatter;
-        let abi_out_dir_root = std::path::Path::new("src/auto");
-        let abi_out_dir = abi_out_dir_root.join(std::path::PathBuf::from_iter(&self.path_components));
-        if let Some(parent) = abi_out_dir.parent() {
+        let auto_out_dir_root = std::path::Path::new("src/auto");
+        let auto_out_dir = auto_out_dir_root.join(std::path::PathBuf::from_iter(&self.path_components));
+        if let Some(parent) = auto_out_dir.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        let path = abi_out_dir.with_extension("rs");
+        let path = auto_out_dir.with_extension("rs");
         let file = self.emit_file();
         let tokens = file.to_token_stream();
         let contents = rust_format::RustFmt::default().format_tokens(tokens)?;
@@ -129,7 +129,7 @@ impl CxxAbiArtifactInfo {
 
 #[cfg(feature = "alloc")]
 fn emit_struct(
-    info: &CxxAbiArtifactInfo,
+    info: &CxxAutoArtifactInfo,
     align: &proc_macro2::Literal,
     size: &proc_macro2::Literal,
     ident: &syn::Ident,
@@ -161,7 +161,7 @@ fn emit_struct(
 }
 
 #[cfg(feature = "alloc")]
-fn emit_derive_attribute(info: &CxxAbiArtifactInfo) -> Option<syn::Attribute> {
+fn emit_derive_attribute(info: &CxxAutoArtifactInfo) -> Option<syn::Attribute> {
     if info.is_rust_copy {
         Some(syn::parse_quote!(#[derive(Clone, Copy)]))
     } else {
@@ -182,7 +182,7 @@ fn emit_field(name: &str, ty: syn::Type) -> syn::Field {
 }
 
 #[cfg(feature = "alloc")]
-fn emit_generics(info: &CxxAbiArtifactInfo, all_static: bool) -> (syn::Generics, syn::Generics) {
+fn emit_generics(info: &CxxAutoArtifactInfo, all_static: bool) -> (syn::Generics, syn::Generics) {
     let span = Span::call_site();
     let mut binder_params = Punctuated::<syn::GenericParam, syn::Token![,]>::new();
     let mut params = Punctuated::<syn::GenericParam, syn::Token![,]>::new();
@@ -230,7 +230,7 @@ fn emit_generics(info: &CxxAbiArtifactInfo, all_static: bool) -> (syn::Generics,
 
 #[cfg(feature = "alloc")]
 fn emit_impl_cxx_extern_type(
-    info: &CxxAbiArtifactInfo,
+    info: &CxxAutoArtifactInfo,
     ident: &syn::Ident,
     generics_binder: &syn::Generics,
     generics: &syn::Generics,
@@ -251,7 +251,7 @@ fn emit_impl_cxx_extern_type(
 
 #[cfg(feature = "alloc")]
 fn emit_impl_drop(
-    info: &CxxAbiArtifactInfo,
+    info: &CxxAutoArtifactInfo,
     ident: &syn::Ident,
     generics_binder: &syn::Generics,
     generics: &syn::Generics,
@@ -275,7 +275,7 @@ fn emit_impl_drop(
 
 #[cfg(feature = "alloc")]
 fn emit_impl_debug(
-    info: &CxxAbiArtifactInfo,
+    info: &CxxAutoArtifactInfo,
     ident: &syn::Ident,
     generics_binder: &syn::Generics,
     generics: &syn::Generics,
@@ -303,7 +303,7 @@ fn emit_impl_debug(
 
 #[cfg(feature = "alloc")]
 fn emit_impl_default(
-    info: &CxxAbiArtifactInfo,
+    info: &CxxAutoArtifactInfo,
     ident: &syn::Ident,
     generics_binder: &syn::Generics,
     generics: &syn::Generics,
@@ -329,7 +329,7 @@ fn emit_impl_default(
 
 #[cfg(feature = "alloc")]
 fn emit_impl_display(
-    info: &CxxAbiArtifactInfo,
+    info: &CxxAutoArtifactInfo,
     ident: &syn::Ident,
     generics_binder: &syn::Generics,
     generics: &syn::Generics,
@@ -350,7 +350,7 @@ fn emit_impl_display(
 
 #[cfg(feature = "alloc")]
 fn emit_impl_moveit_copy_new(
-    info: &CxxAbiArtifactInfo,
+    info: &CxxAutoArtifactInfo,
     ident: &syn::Ident,
     generics_binder: &syn::Generics,
     generics: &syn::Generics,
@@ -372,7 +372,7 @@ fn emit_impl_moveit_copy_new(
 
 #[cfg(feature = "alloc")]
 fn emit_impl_moveit_move_new(
-    info: &CxxAbiArtifactInfo,
+    info: &CxxAutoArtifactInfo,
     ident: &syn::Ident,
     generics_binder: &syn::Generics,
     generics: &syn::Generics,
@@ -398,7 +398,7 @@ fn emit_impl_moveit_move_new(
 
 #[cfg(feature = "alloc")]
 fn emit_impl_partial_eq(
-    info: &CxxAbiArtifactInfo,
+    info: &CxxAutoArtifactInfo,
     ident: &syn::Ident,
     generics_binder: &syn::Generics,
     generics: &syn::Generics,
@@ -430,7 +430,7 @@ fn emit_impl_partial_eq(
 
 #[cfg(feature = "alloc")]
 fn emit_impl_eq(
-    info: &CxxAbiArtifactInfo,
+    info: &CxxAutoArtifactInfo,
     ident: &syn::Ident,
     generics_binder: &syn::Generics,
     generics: &syn::Generics,
@@ -446,7 +446,7 @@ fn emit_impl_eq(
 
 #[cfg(feature = "alloc")]
 fn emit_impl_partial_ord(
-    info: &CxxAbiArtifactInfo,
+    info: &CxxAutoArtifactInfo,
     ident: &syn::Ident,
     generics_binder: &syn::Generics,
     generics: &syn::Generics,
@@ -521,7 +521,7 @@ fn emit_impl_partial_ord(
 
 #[cfg(feature = "alloc")]
 fn emit_impl_ord(
-    info: &CxxAbiArtifactInfo,
+    info: &CxxAutoArtifactInfo,
     ident: &syn::Ident,
     generics_binder: &syn::Generics,
     generics: &syn::Generics,
@@ -550,7 +550,7 @@ fn emit_impl_ord(
 
 #[cfg(feature = "alloc")]
 fn emit_impl_hash(
-    info: &CxxAbiArtifactInfo,
+    info: &CxxAutoArtifactInfo,
     ident: &syn::Ident,
     generics_binder: &syn::Generics,
     generics: &syn::Generics,
@@ -575,7 +575,7 @@ fn emit_impl_hash(
 
 #[cfg(feature = "alloc")]
 fn emit_info_test_module(
-    info: &CxxAbiArtifactInfo,
+    info: &CxxAutoArtifactInfo,
     ident: &syn::Ident,
     align: &proc_macro2::Literal,
     size: &proc_macro2::Literal,
@@ -620,7 +620,7 @@ fn emit_info_test_module(
 }
 
 #[cfg(feature = "alloc")]
-fn emit_item_mod_cxx_bridge(info: &CxxAbiArtifactInfo, ident: &syn::Ident, generics: &syn::Generics) -> syn::ItemMod {
+fn emit_item_mod_cxx_bridge(info: &CxxAutoArtifactInfo, ident: &syn::Ident, generics: &syn::Generics) -> syn::ItemMod {
     let cxx_include = &info.cxx_include;
     let cxx_namespace = &info.cxx_namespace;
     let cxx_name = &info.cxx_name;
@@ -777,7 +777,7 @@ fn field_layout(size: &proc_macro2::Literal) -> syn::Field {
 }
 
 #[cfg(feature = "alloc")]
-fn field_neither_send_nor_sync(info: &CxxAbiArtifactInfo) -> Option<syn::Field> {
+fn field_neither_send_nor_sync(info: &CxxAutoArtifactInfo) -> Option<syn::Field> {
     let is_neither_send_nor_sync = !info.is_rust_send && !info.is_rust_sync;
     if is_neither_send_nor_sync {
         let name = "_neither_send_nor_sync";
@@ -789,7 +789,7 @@ fn field_neither_send_nor_sync(info: &CxxAbiArtifactInfo) -> Option<syn::Field> 
 }
 
 #[cfg(feature = "alloc")]
-fn field_pinned(info: &CxxAbiArtifactInfo) -> Option<syn::Field> {
+fn field_pinned(info: &CxxAutoArtifactInfo) -> Option<syn::Field> {
     if info.is_rust_unpin {
         None
     } else {

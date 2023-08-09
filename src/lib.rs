@@ -6,8 +6,8 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-mod cxx_abi_artifact_info;
-mod cxx_abi_entry;
+mod cxx_auto_artifact_info;
+mod cxx_auto_entry;
 mod error;
 mod ffi {
     pub(crate) mod ctypes;
@@ -18,7 +18,7 @@ mod gen {
 mod processing;
 
 #[cfg(feature = "alloc")]
-pub use crate::{cxx_abi_artifact_info::CxxAbiArtifactInfo, cxx_abi_entry::CxxAbiEntry, error::*};
+pub use crate::{cxx_auto_artifact_info::CxxAutoArtifactInfo, cxx_auto_entry::CxxAutoEntry, error::*};
 #[cfg(feature = "alloc")]
 pub use indexmap;
 
@@ -42,7 +42,7 @@ pub mod ctypes {
 }
 
 #[cfg(feature = "std")]
-pub fn process_artifacts(abi_dir: &std::path::Path, abi_crate_src_dir: &std::path::Path) -> BoxResult<()> {
-    crate::processing::process_src_abi_module(abi_dir, abi_crate_src_dir)?;
+pub fn process_artifacts(auto_dir: &std::path::Path, auto_crate_src_dir: &std::path::Path) -> BoxResult<()> {
+    crate::processing::process_src_auto_module(auto_dir, auto_crate_src_dir)?;
     Ok(())
 }
