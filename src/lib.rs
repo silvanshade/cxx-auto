@@ -42,7 +42,12 @@ pub mod ctypes {
 }
 
 #[cfg(feature = "std")]
-pub fn process_artifacts(auto_dir: &std::path::Path, auto_crate_src_dir: &std::path::Path) -> BoxResult<()> {
-    crate::processing::process_src_auto_module(auto_dir, auto_crate_src_dir)?;
+pub fn process_artifacts(
+    project_dir: &std::path::Path,
+    out_dir: &std::path::Path,
+    cfg_dir: &std::path::Path,
+) -> BoxResult<()> {
+    let out_dir = &out_dir.join("src");
+    crate::processing::process_src_auto_module(project_dir, out_dir, cfg_dir)?;
     Ok(())
 }

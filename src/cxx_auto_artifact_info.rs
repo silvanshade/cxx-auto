@@ -64,7 +64,6 @@ impl CxxAutoArtifactInfo {
         let item_mod_cxx_bridge = emit_item_mod_cxx_bridge(self, ident, generics);
         let item_info_test_module = emit_info_test_module(self, ident, align, size);
         syn::parse_quote! {
-            //! NOTE: This module is auto-generated and should not be edited.
             #(pub(crate) mod #path_descendants;)*
             #item_struct
             #item_impl_cxx_extern_type
@@ -85,10 +84,13 @@ impl CxxAutoArtifactInfo {
     }
 
     #[cfg(feature = "std")]
-    pub fn write_module_for_dir(path_components: &[&str], path_descendants: &[&str]) -> crate::BoxResult<()> {
+    pub fn write_module_for_dir(
+        auto_out_dir_root: &std::path::Path,
+        path_components: &[&str],
+        path_descendants: &[&str],
+    ) -> crate::BoxResult<()> {
         use quote::ToTokens;
         use rust_format::Formatter;
-        let auto_out_dir_root = std::path::Path::new("src/auto");
         let auto_out_dir = auto_out_dir_root.join(std::path::PathBuf::from_iter(path_components));
         if let Some(parent) = auto_out_dir.parent() {
             std::fs::create_dir_all(parent)?;
@@ -96,12 +98,22 @@ impl CxxAutoArtifactInfo {
         let path = auto_out_dir.with_extension("rs");
         let file: syn::File = {
             let span = Span::call_site();
-            let path_descendants = path_descendants
+            let items = path_descendants
                 .iter()
-                .map(|descendant| syn::Ident::new(descendant, span));
-            syn::parse_quote! {
-                //! NOTE: This module is auto-generated and should not be edited.
-                #(pub(crate) mod #path_descendants;)*
+                .map(|descendant| {
+                    let path = auto_out_dir.join(descendant).with_extension("rs");
+                    let path = path.to_string_lossy();
+                    let ident = syn::Ident::new(descendant, span);
+                    syn::parse_quote! {
+                        #[path = #path]
+                        pub(crate) mod #ident;
+                    }
+                })
+                .collect::<alloc::vec::Vec<syn::Item>>();
+            syn::File {
+                shebang: None,
+                attrs: alloc::vec![],
+                items,
             }
         };
         let tokens = file.to_token_stream();
@@ -110,10 +122,10 @@ impl CxxAutoArtifactInfo {
         Ok(())
     }
 
-    pub fn write_module_for_file(&self) -> crate::BoxResult<()> {
+    #[cfg(feature = "std")]
+    pub fn write_module_for_file(&self, auto_out_dir_root: &::std::path::Path) -> crate::BoxResult<()> {
         use quote::ToTokens;
         use rust_format::Formatter;
-        let auto_out_dir_root = std::path::Path::new("src/auto");
         let auto_out_dir = auto_out_dir_root.join(std::path::PathBuf::from_iter(&self.path_components));
         if let Some(parent) = auto_out_dir.parent() {
             std::fs::create_dir_all(parent)?;

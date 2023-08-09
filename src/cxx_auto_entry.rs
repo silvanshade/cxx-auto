@@ -113,8 +113,8 @@ impl<'ctx> CxxAutoEntry<'ctx> {
                 }
             },
             syn::parse_quote! {
-                pub(crate) fn write_module() -> ::cxx_auto::BoxResult<()> {
-                    self::artifact_info().write_module_for_file()
+                pub(crate) fn write_module(auto_out_dir_root: &::std::path::Path) -> ::cxx_auto::BoxResult<()> {
+                    self::artifact_info().write_module_for_file(auto_out_dir_root)
                 }
             },
         ]

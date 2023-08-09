@@ -7,19 +7,19 @@ use rust_format::Formatter;
 #[cfg(feature = "std")]
 use std::collections::BTreeSet;
 
-#[cfg(feature = "std")]
 pub(crate) fn process_src_auto_module(
-    auto_dir: &std::path::Path,
-    auto_crate_src_dir: &std::path::Path,
+    project_dir: &std::path::Path,
+    out_dir: &std::path::Path,
+    cfg_dir: &std::path::Path,
 ) -> BoxResult<()> {
-    let src_dir = auto_crate_src_dir;
-    let auto_dir_walker = walkdir::WalkDir::new(auto_dir).min_depth(1);
+    let cfg_dir_walker = walkdir::WalkDir::new(cfg_dir).min_depth(1);
     let skip_paths = std::collections::BTreeSet::new();
     let mut walked_path_components = ::alloc::vec::Vec::new();
 
     process_src_auto_sub_module(
-        &src_dir,
-        auto_dir_walker.into_iter(),
+        project_dir,
+        &out_dir,
+        cfg_dir_walker.into_iter(),
         skip_paths,
         &mut walked_path_components,
     )?;
@@ -30,8 +30,10 @@ pub(crate) fn process_src_auto_module(
         let mut path_descendants = BTreeSet::new();
         let mut item_mods = ::alloc::vec![];
         emit_item_mods_for_path_descendants(
+            project_dir,
+            out_dir,
+            cfg_dir,
             &mut std::collections::BTreeSet::new(),
-            auto_dir,
             &mut path_descendants,
             &mut item_mods,
         )?;
@@ -39,7 +41,6 @@ pub(crate) fn process_src_auto_module(
         let item_fn_process_artifact_infos =
             emit_item_fn_process_artifact_infos((&[::alloc::vec![]]).iter().chain(walked_path_components.iter()));
         let file: syn::File = syn::parse_quote! {
-            //! NOTE: This module is auto-generated and should not be edited.
             #(#item_mods)*
             #item_write_module
             #item_fn_process_artifact_infos
@@ -47,19 +48,20 @@ pub(crate) fn process_src_auto_module(
         let tokens = file.to_token_stream();
         rust_format::RustFmt::default().format_tokens(tokens)?
     };
-    std::fs::write(src_dir.join("auto.rs"), contents)?;
+    std::fs::write(out_dir.join("auto.rs"), contents)?;
 
     Ok(())
 }
 
 #[cfg(feature = "std")]
 fn process_src_auto_sub_module(
-    src_dir: &std::path::Path,
-    mut auto_dir_walker: impl Iterator<Item = walkdir::Result<walkdir::DirEntry>>,
+    project_dir: &std::path::Path,
+    out_dir: &std::path::Path,
+    mut cfg_dir_walker: impl Iterator<Item = walkdir::Result<walkdir::DirEntry>>,
     mut skip_paths: std::collections::BTreeSet<std::path::PathBuf>,
     walked_path_file_components: &mut ::alloc::vec::Vec<::alloc::vec::Vec<::alloc::string::String>>,
 ) -> BoxResult<()> {
-    if let Some(entry) = auto_dir_walker.next().transpose()? {
+    if let Some(entry) = cfg_dir_walker.next().transpose()? {
         let path = entry.path();
 
         if !skip_paths.contains(path) {
@@ -75,7 +77,14 @@ fn process_src_auto_sub_module(
             let mut item_mods = ::alloc::vec![];
 
             if let Some(path) = &path_dir {
-                emit_item_mods_for_path_descendants(&mut skip_paths, path, &mut path_descendants, &mut item_mods)?;
+                emit_item_mods_for_path_descendants(
+                    project_dir,
+                    out_dir,
+                    path,
+                    &mut skip_paths,
+                    &mut path_descendants,
+                    &mut item_mods,
+                )?;
             }
 
             let mut items_write_module: ::alloc::vec::Vec<syn::ItemFn> = ::alloc::vec![];
@@ -92,7 +101,7 @@ fn process_src_auto_sub_module(
                 items_write_module.push(emit_item_write_module_for_dir(&path_components, &path_descendants));
             }
 
-            let auto_sub_module_path = src_dir.join(
+            let auto_sub_module_path = out_dir.join(
                 [::alloc::string::String::from("auto")]
                     .iter()
                     .chain(&path_components)
@@ -112,14 +121,22 @@ fn process_src_auto_sub_module(
                 items_write_module,
             )?;
         }
-        process_src_auto_sub_module(src_dir, auto_dir_walker, skip_paths, walked_path_file_components)?;
+        process_src_auto_sub_module(
+            project_dir,
+            out_dir,
+            cfg_dir_walker,
+            skip_paths,
+            walked_path_file_components,
+        )?;
     }
     Ok(())
 }
 
 fn emit_item_mods_for_path_descendants(
-    skip_paths: &mut BTreeSet<std::path::PathBuf>,
+    project_dir: &std::path::Path,
+    out_dir: &std::path::Path,
     path: &std::path::Path,
+    skip_paths: &mut BTreeSet<std::path::PathBuf>,
     path_descendants: &mut BTreeSet<::alloc::string::String>,
     items: &mut ::alloc::vec::Vec<syn::ItemMod>,
 ) -> BoxResult<()> {
@@ -128,7 +145,14 @@ fn emit_item_mods_for_path_descendants(
     let span = Span::call_site();
     for descendant in path_descendants.iter() {
         let ident = syn::Ident::new(descendant, span);
-        items.push(syn::parse_quote!(pub mod #ident;))
+        let descendant_path = path.join(descendant).with_extension("rs");
+        let mod_suffix = descendant_path.strip_prefix(project_dir)?;
+        let mod_path = out_dir.join(mod_suffix);
+        let mod_path_string = mod_path.to_string_lossy();
+        items.push(syn::parse_quote! {
+            #[path = #mod_path_string]
+            pub mod #ident;
+        })
     }
     Ok(())
 }
@@ -139,10 +163,10 @@ fn emit_item_write_module_for_dir(
     path_descendants: &BTreeSet<::alloc::string::String>,
 ) -> syn::ItemFn {
     syn::parse_quote! {
-        pub(crate) fn write_module() -> ::cxx_auto::BoxResult<()> {
+        pub(crate) fn write_module(out_dir: &::std::path::Path) -> ::cxx_auto::BoxResult<()> {
             let path_components = &[#(#path_components),*];
             let path_descendants = &[#(#path_descendants),*];
-            ::cxx_auto::CxxAutoArtifactInfo::write_module_for_dir(path_components, path_descendants)
+            ::cxx_auto::CxxAutoArtifactInfo::write_module_for_dir(out_dir, path_components, path_descendants)
         }
     }
 }
@@ -161,13 +185,14 @@ fn emit_item_fn_process_artifact_infos<'a>(
                 .collect(),
         };
         if path_components.is_empty() {
-            syn::parse_quote!(self::write_module()?;)
+            syn::parse_quote!(self::write_module(auto_out_dir_root)?;)
         } else {
-            syn::parse_quote!(self::#path::write_module()?;)
+            syn::parse_quote!(self::#path::write_module(auto_out_dir_root)?;)
         }
     });
     syn::parse_quote! {
-        pub fn process_artifacts() -> ::cxx_auto::BoxResult<()> {
+        pub fn process_artifacts(out_dir: &::std::path::Path) -> ::cxx_auto::BoxResult<()> {
+            let auto_out_dir_root = &out_dir.join("src/auto");
             #(#items)*
             Ok(())
         }
@@ -223,7 +248,6 @@ fn write_auto_sub_module(
     items_write_module: ::alloc::vec::Vec<syn::ItemFn>,
 ) -> BoxResult<()> {
     let file: syn::File = syn::parse_quote! {
-        //! NOTE: This module is auto-generated and should not be edited.
         #(#item_mods)*
         #(#item_mod_cxx_bridge)*
         #(#items_write_module)*
