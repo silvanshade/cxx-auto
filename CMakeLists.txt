@@ -32,8 +32,8 @@ target_include_directories(cxx-auto PUBLIC
 )
 target_compile_definitions(cxx-auto PUBLIC _LIBCPP_ENABLE_THREAD_SAFETY_ANNOTATIONS)
 target_compile_options(cxx-auto PUBLIC
+  -fno-rtti # needed to avoid "undefined reference to `typeinfo for [...]`" errors
   -std=gnu++20
-  # -stdlib=libc++
   -Werror
   -Wall
   -Wextra
@@ -46,5 +46,4 @@ target_compile_options(cxx-auto PUBLIC
   -Wno-dollar-in-identifier-extension
   -Wno-nested-anon-types
   -Wno-unused-parameter
-  -fno-rtti # needed to avoid "undefined reference to `typeinfo for [...]`" errors
 )

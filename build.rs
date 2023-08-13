@@ -4,6 +4,7 @@ type BoxResult<T> = Result<T, BoxError>;
 fn main() -> BoxResult<()> {
     // NOTE: cxx-build an empty bridge so that `cxx/include/**/*.hxx` is exported to dependencies
     cxx_build::bridge("src/gen/ctypes.rs")
+        .compiler("clang++")
         .flag_if_supported("-fno-rtti")
         .flag_if_supported("-std=gnu++2b")
         .flag_if_supported("-Werror")
@@ -14,8 +15,8 @@ fn main() -> BoxResult<()> {
         .flag_if_supported("-Wno-deprecated-anon-enum-enum-conversion")
         .flag_if_supported("-Wno-deprecated-builtins")
         .flag_if_supported("-Wno-dollar-in-identifier-extension")
+        .flag_if_supported("-Wno-nested-anon-types")
         .flag_if_supported("-Wno-unused-parameter")
-        .compiler("clang++")
         .try_compile("cxx-auto")?;
     println!("cargo:rerun-if-changed=cxx");
     println!("cargo:rerun-if-changed=src/lib.rs");
