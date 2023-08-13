@@ -78,6 +78,7 @@ impl crate::ffi::ctypes::c_char {
         Self::from_bytes(bytes)
     }
 
+    #[allow(clippy::should_implement_trait)]
     #[inline]
     pub fn from_str(str: &str) -> &[c_char] {
         Self::from_bytes(str.as_bytes())

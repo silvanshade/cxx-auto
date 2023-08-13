@@ -18,7 +18,7 @@ pub(crate) fn process_src_auto_module(
 
     process_src_auto_sub_module(
         project_dir,
-        &out_dir,
+        out_dir,
         cfg_dir_walker.into_iter(),
         skip_paths,
         &mut walked_path_components,
@@ -39,7 +39,7 @@ pub(crate) fn process_src_auto_module(
         )?;
         let item_write_module = emit_item_write_module_for_dir(&::alloc::vec![], &path_descendants);
         let item_fn_process_artifact_infos =
-            emit_item_fn_process_artifact_infos((&[::alloc::vec![]]).iter().chain(walked_path_components.iter()));
+            emit_item_fn_process_artifact_infos(([::alloc::vec![]]).iter().chain(walked_path_components.iter()));
         let file: syn::File = syn::parse_quote! {
             #(#item_mods)*
             #item_write_module
@@ -92,7 +92,7 @@ fn process_src_auto_sub_module(
 
             if let Some(path) = &path_file {
                 skip_paths.insert(path.to_path_buf());
-                let text = std::fs::read_to_string(&path)?;
+                let text = std::fs::read_to_string(path)?;
                 let data = serde_json::from_str::<crate::CxxAutoEntry>(&text)?;
                 items_write_module =
                     data.emit_items_write_module_for_file(path_components.iter(), path_descendants.iter());
@@ -141,7 +141,7 @@ fn emit_item_mods_for_path_descendants(
     items: &mut ::alloc::vec::Vec<syn::ItemMod>,
 ) -> BoxResult<()> {
     skip_paths.insert(path.to_path_buf());
-    find_immediate_path_descendants(&path, path_descendants)?;
+    find_immediate_path_descendants(path, path_descendants)?;
     let span = Span::call_site();
     for descendant in path_descendants.iter() {
         let ident = syn::Ident::new(descendant, span);
@@ -180,8 +180,8 @@ fn emit_item_fn_process_artifact_infos<'a>(
         let path = syn::Path {
             leading_colon: None,
             segments: path_components
-                .into_iter()
-                .map(|component| syn::PathSegment::from(syn::Ident::new(&component, span)))
+                .iter()
+                .map(|component| syn::PathSegment::from(syn::Ident::new(component, span)))
                 .collect(),
         };
         if path_components.is_empty() {
@@ -204,7 +204,7 @@ fn find_immediate_path_descendants(
     path: &std::path::Path,
     path_descendants: &mut BTreeSet<::alloc::string::String>,
 ) -> BoxResult<()> {
-    for result in walkdir::WalkDir::new(&path).min_depth(1).max_depth(1) {
+    for result in walkdir::WalkDir::new(path).min_depth(1).max_depth(1) {
         let entry = result?;
         if let Some(file_stem) = entry
             .path()

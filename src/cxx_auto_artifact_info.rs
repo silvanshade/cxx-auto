@@ -174,7 +174,7 @@ fn emit_struct(
             field_lifetimes,
         ]
         .into_iter()
-        .filter_map(core::convert::identity)
+        .flatten()
         .collect::<Punctuated<syn::Field, syn::Token![,]>>(),
     };
     syn::parse_quote! {
@@ -775,7 +775,7 @@ fn emit_refs_from_lifetimes(generics: &syn::Generics) -> Punctuated<syn::Type, s
     generics
         .params
         .iter()
-        .filter_map(|generic_param| emit_ref_type_from_lifetime(generic_param))
+        .filter_map(emit_ref_type_from_lifetime)
         .collect::<Punctuated<syn::Type, syn::Token![,]>>()
 }
 
