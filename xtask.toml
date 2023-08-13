@@ -1,0 +1,30 @@
+#:schema https://raw.githubusercontent.com/silvanshade/cxx-xtask/main/xtask-schema.json
+
+[clang]
+suffix = "-16"
+version = "16.0"
+
+[clang.matchers]
+"clang" = "^(?:\\b[^A\\s][^p\\s][^p\\s][^l\\s][^e\\s]\\S*|Apple\\S+|\\S{0,4}\\b)\\s+\\bclang\\b\\s+\\bversion\\b\\s+(\\d+(?:\\.\\d+)*)"
+"clang++" = "^(?:\\b[^A\\s][^p\\s][^p\\s][^l\\s][^e\\s]\\S*|Apple\\S+|\\S{0,4}\\b)\\s+\\bclang\\b\\s+\\bversion\\b\\s+(\\d+(?:\\.\\d+)*)"
+"clang-format" = "^\\S+\\s+\\bclang-format\\b\\s+\\bversion\\b\\s+(\\d+(?:\\.\\d+)*)"
+"clang-tidy" = "^\\S+\\s+\\bLLVM\\b\\s+\\bversion\\b\\s+(\\d+(?:\\.\\d+)*)"
+"clangd" = "^(?:\\b[^A\\s][^p\\s][^p\\s][^l\\s][^e\\s]\\S*|Apple\\S+|\\S{0,4}\\b)\\s+\\bclangd\\b\\s+\\bversion\\b\\s+(\\d+(?:\\.\\d+)*)"
+
+[[clang.platform.macos.searchPaths]]
+kind = "homebrew"
+
+[rust.components.clippy]
+toolchain = "stable"
+
+[rust.components.fmt]
+toolchain = "nightly"
+
+[rust.components.miri]
+toolchain = "nightly"
+
+[rust.components.rustdoc]
+toolchain = "nightly"
+
+[rust.toolchain]
+nightly = "2023-08-08"
