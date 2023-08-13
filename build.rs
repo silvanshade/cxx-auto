@@ -19,6 +19,6 @@ fn main() -> BoxResult<()> {
         .flag_if_supported("-Wno-unused-parameter")
         .try_compile("cxx-auto")?;
     println!("cargo:rerun-if-changed=cxx");
-    println!("cargo:rerun-if-changed=src/lib.rs");
+    println!("cargo:rerun-if-changed=gen");
     Ok(())
 }
