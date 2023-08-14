@@ -1,6 +1,8 @@
 #![deny(clippy::all)]
 #![deny(unsafe_code)]
 
+use cxx_xtask::command::Context;
+
 fn main() -> cxx_xtask::BoxResult<()> {
     let help = r#"
 xtask
@@ -18,7 +20,7 @@ SUBCOMMANDS:
     clippy
     cmake
     doc
-    edit <EDITOR>
+    edit [EDITOR]
     fmt
     help                Prints this message
     init
@@ -30,7 +32,7 @@ SUBCOMMANDS:
 "#
     .trim();
 
-    let project_root = cxx_xtask::cargo::project_root()?;
+    let project_root = cxx_xtask::workspace::project_root()?;
     let config = cxx_xtask::config::Config::load(&project_root)?;
 
     let mut args: Vec<_> = std::env::args_os().collect();
@@ -49,19 +51,45 @@ SUBCOMMANDS:
 
     let subcommand = args.subcommand()?;
     if let Some(subcommand) = subcommand.as_deref() {
+        let mut context = Context::new(&config, &mut args, tool_args);
         let result = match subcommand {
-            "build" => cxx_xtask::command::build(&config, &mut args, tool_args),
-            "check" => cxx_xtask::command::check(&config, &mut args, tool_args),
-            "clang" => cxx_xtask::command::clang(&config, &mut args, tool_args),
-            "clippy" => cxx_xtask::command::clippy(&config, &mut args, tool_args),
-            "edit" => cxx_xtask::command::edit(&config, &mut args, tool_args),
-            "doc" => cxx_xtask::command::doc(&config, &mut args, tool_args),
-            "fmt" => cxx_xtask::command::fmt(&config, &mut args, tool_args),
-            "miri" => cxx_xtask::command::miri(&config, &mut args, tool_args),
-            "tarpaulin" => cxx_xtask::command::tarpaulin(&config, &mut args, tool_args),
-            "test" => cxx_xtask::command::test(&config, &mut args, tool_args),
-            "udeps" => cxx_xtask::command::udeps(&config, &mut args, tool_args),
-            "valgrind" => cxx_xtask::command::valgrind(&config, &mut args, tool_args),
+            "build" => cxx_xtask::command::build(context),
+            "check" => cxx_xtask::command::check(context),
+            "clang" => {
+                let subcommand: String = context.args.free_from_str()?;
+                if context.tool_args.is_empty() {
+                    let default_args: &[&str] = match &*subcommand {
+                        "format" => &["-r", "./cxx"],
+                        "tidy" => &["-p", "build", "-quiet", "./cxx"],
+                        _ => &[],
+                    };
+                    context.tool_args.extend(default_args.into_iter().map(Into::into));
+                    context.current_dir = Some(config.project_root_dir.clone());
+                }
+                context.subcommand = Some(subcommand);
+                cxx_xtask::command::clang(context)
+            },
+            "clippy" => cxx_xtask::command::clippy(context),
+            "cmake" => cxx_xtask::command::cmake(context),
+            "edit" => {
+                let (editor, editor_args) = cxx_xtask::detection::detect_editor(context.args)?;
+                if context.tool_args.is_empty() {
+                    let default_args: &[&str] = match &*editor {
+                        "code" | "code-insiders" => &["./cxx-auto.code-workspace"],
+                        _ => &[],
+                    };
+                    context.tool_args.extend(default_args.into_iter().map(Into::into));
+                    context.current_dir = Some(config.project_root_dir.clone());
+                }
+                cxx_xtask::command::edit(context, editor, editor_args)
+            },
+            "doc" => cxx_xtask::command::doc(context),
+            "fmt" => cxx_xtask::command::fmt(context),
+            "miri" => cxx_xtask::command::miri(context),
+            "tarpaulin" => cxx_xtask::command::tarpaulin(context),
+            "test" => cxx_xtask::command::test(context),
+            "udeps" => cxx_xtask::command::udeps(context),
+            "valgrind" => cxx_xtask::command::valgrind(context),
             "help" => {
                 println!("{help}\n");
                 Ok(None)
