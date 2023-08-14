@@ -63,7 +63,7 @@ SUBCOMMANDS:
                         "tidy" => &["-p", "build", "-quiet", "./cxx"],
                         _ => &[],
                     };
-                    context.tool_args.extend(default_args.into_iter().map(Into::into));
+                    context.tool_args.extend(default_args.iter().map(Into::into));
                     context.current_dir = Some(config.project_root_dir.clone());
                 }
                 context.subcommand = Some(subcommand);
@@ -78,7 +78,7 @@ SUBCOMMANDS:
                         "code" | "code-insiders" => &["./cxx-auto.code-workspace"],
                         _ => &[],
                     };
-                    context.tool_args.extend(default_args.into_iter().map(Into::into));
+                    context.tool_args.extend(default_args.iter().map(Into::into));
                     context.current_dir = Some(config.project_root_dir.clone());
                 }
                 cxx_xtask::command::edit(context, editor, editor_args)
