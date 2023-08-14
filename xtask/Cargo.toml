@@ -10,4 +10,4 @@ debug = []
 default = []
 
 [dependencies]
-cxx-xtask = { git = "https://github.com/silvanshade/cxx-xtask", rev = "e48281d" }
+cxx-xtask = { git = "https://github.com/silvanshade/cxx-xtask", rev = "20cdee0" }

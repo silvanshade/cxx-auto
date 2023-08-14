@@ -1,0 +1,150 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  CARGO_TERM_COLOR: always
+  LLVM_VERSION: 16
+
+jobs:
+  cargo-deny:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        checks:
+          - advisories
+          - bans licenses sources
+    continue-on-error: ${{ matrix.checks == 'advisories' }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - uses: EmbarkStudios/cargo-deny-action@v1
+        with:
+          command: check ${{ matrix.checks }}
+
+  cargo-fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: echo "RUST_NIGHTLY_TOOLCHAIN=$(awk '/^channel\s*=\s*".*"$/ { print gensub(/"(.*)"/, "\\1", "g", $3); }' rust-toolchain.toml)" >> $GITHUB_ENV
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_NIGHTLY_TOOLCHAIN }}
+          components: rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo +${{ env.RUST_NIGHTLY_TOOLCHAIN }} fmt --all -- --check
+
+  cargo-clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          echo "deb     http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" | sudo tee --append /etc/apt/sources.list.d/llvm.list
+          echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" | sudo tee --append /etc/apt/sources.list.d/llvm.list
+          sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/llvm.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: clang-16 clang-format-16 clang-tidy-16 clang-tools-16 clangd-16 libclang-16-dev libclang-common-16-dev libclang1-16
+          version: 1.0
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - uses: giraffate/clippy-action@v1
+        with:
+          reporter: "github-pr-review"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          clippy_flags: -- -D warnings
+
+  cargo-docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - run: |
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          echo "deb     http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" | sudo tee --append /etc/apt/sources.list.d/llvm.list
+          echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" | sudo tee --append /etc/apt/sources.list.d/llvm.list
+          sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/llvm.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: clang-16 clang-format-16 clang-tidy-16 clang-tools-16 clangd-16 libclang-16-dev libclang-common-16-dev libclang1-16
+          version: 1.0
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo doc --no-deps --package cxx-auto
+      - uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./target/doc
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+  cargo-test:
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - if: matrix.os == 'macos-latest'
+        run: brew install llvm@16
+      - if: matrix.os == 'ubuntu-latest'
+        run: |
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          echo "deb     http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" | sudo tee --append /etc/apt/sources.list.d/llvm.list
+          echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" | sudo tee --append /etc/apt/sources.list.d/llvm.list
+          sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/llvm.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
+      - if: matrix.os == 'ubuntu-latest'
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: clang-16 clang-format-16 clang-tidy-16 clang-tools-16 clangd-16 libclang-16-dev libclang-common-16-dev libclang1-16
+          version: 1.0
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test
+
+  clang-format:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          echo "deb     http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" | sudo tee --append /etc/apt/sources.list.d/llvm.list
+          echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" | sudo tee --append /etc/apt/sources.list.d/llvm.list
+          sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/llvm.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: clang-16 clang-format-16 clang-tidy-16 clang-tools-16 clangd-16 libclang-16-dev libclang-common-16-dev libclang1-16
+          version: 1.0
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo xtask clang format
+
+  clang-tidy:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          echo "deb     http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" | sudo tee --append /etc/apt/sources.list.d/llvm.list
+          echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" | sudo tee --append /etc/apt/sources.list.d/llvm.list
+          sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/llvm.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: clang-16 clang-format-16 clang-tidy-16 clang-tools-16 clangd-16 libclang-16-dev libclang-common-16-dev libclang1-16 ninja-build
+          version: 1.0
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo check
+      - run: cargo xtask clang tidy
