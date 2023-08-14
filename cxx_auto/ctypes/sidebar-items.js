@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["c_char","c_int","c_long","c_longlong","c_off_t","c_schar","c_short","c_time_t","c_uchar","c_uint","c_ulong","c_ulonglong","c_ushort","c_void"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["process_artifacts"],"mod":["ctypes"],"struct":["CxxAutoArtifactInfo","CxxAutoEntry"],"type":["BoxError","BoxResult"]};
