@@ -56,8 +56,10 @@ jobs:
           packages: clang-16 clang-format-16 clang-tidy-16 clang-tools-16 clangd-16 libclang-16-dev libclang-common-16-dev libclang1-16
           version: 1.0
       - uses: actions/checkout@v3
+      - run: echo "RUST_NIGHTLY_TOOLCHAIN=$(awk '/^channel\s*=\s*".*"$/ { print gensub(/"(.*)"/, "\\1", "g", $3); }' rust-toolchain.toml)" >> $GITHUB_ENV
       - uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: ${{ env.RUST_NIGHTLY_TOOLCHAIN }}
           components: clippy
       - uses: Swatinem/rust-cache@v2
       - uses: giraffate/clippy-action@v1
@@ -65,6 +67,7 @@ jobs:
           reporter: "github-pr-review"
           github_token: ${{ secrets.GITHUB_TOKEN }}
           clippy_flags: -- -D warnings
+      - run: cargo +${{ env.RUST_NIGHTLY_TOOLCHAIN }} clippy -- -D warnings
 
   cargo-docs:
     runs-on: ubuntu-latest
