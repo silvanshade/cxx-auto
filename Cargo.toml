@@ -5,6 +5,7 @@ version = "0.0.2"
 authors = ["silvanshade <silvanshade@users.noreply.github.com>"]
 license = "Apache-2.0 WITH LLVM-exception"
 repository = "https://github.com/silvanshade/cxx-auto"
+documentation = "https://silvanshade.github.io/cxx-auto/cxx_auto"
 description = "Automatically generate cxx bindings"
 # NOTE: `links` is needed so that `cxx/include/**/*.hxx` is exported to dependencies
 links = "cxx-auto"
