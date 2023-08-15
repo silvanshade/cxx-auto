@@ -257,6 +257,7 @@
 <a href="#257" id="257">257</a>
 <a href="#258" id="258">258</a>
 <a href="#259" id="259">259</a>
+<a href="#260" id="260">260</a>
 </pre></div><pre class="rust"><code><span class="attr">#[cfg(feature = <span class="string">&quot;alloc&quot;</span>)]
 </span><span class="kw">use </span><span class="kw">crate</span>::BoxResult;
 
@@ -450,7 +451,8 @@
         }
     });
     <span class="macro">syn::parse_quote! </span>{
-        <span class="kw">pub fn </span>process_artifacts(out_dir: <span class="kw-2">&amp;</span>::std::path::Path) -&gt; ::cxx_auto::BoxResult&lt;()&gt; {
+        <span class="attr">#[allow(clippy::missing_errors_doc)]
+        </span><span class="kw">pub fn </span>process_artifacts(out_dir: <span class="kw-2">&amp;</span>::std::path::Path) -&gt; ::cxx_auto::BoxResult&lt;()&gt; {
             <span class="kw">let </span>auto_out_dir_root = <span class="kw-2">&amp;</span>out_dir.join(<span class="string">&quot;src/auto&quot;</span>);
             #(#items)*
             <span class="prelude-val">Ok</span>(())
