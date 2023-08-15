@@ -191,6 +191,7 @@ fn emit_item_fn_process_artifact_infos<'a>(
         }
     });
     syn::parse_quote! {
+        #[allow(clippy::missing_errors_doc)]
         pub fn process_artifacts(out_dir: &::std::path::Path) -> ::cxx_auto::BoxResult<()> {
             let auto_out_dir_root = &out_dir.join("src/auto");
             #(#items)*

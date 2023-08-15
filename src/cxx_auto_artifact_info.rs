@@ -400,7 +400,7 @@ fn emit_impl_moveit_copy_new(
                 #[inline]
                 unsafe fn copy_new(that: &Self, this: ::core::pin::Pin<&mut ::core::mem::MaybeUninit<Self>>) {
                     let this = this.get_unchecked_mut().as_mut_ptr();
-                    self::ffi::cxx_copy_new(this, that)
+                    self::ffi::cxx_copy_new(this, that);
                 }
             }
         })
@@ -426,7 +426,7 @@ fn emit_impl_moveit_move_new(
                 ) {
                     let this = this.get_unchecked_mut().as_mut_ptr();
                     let that = &mut *::core::pin::Pin::into_inner_unchecked(that);
-                    self::ffi::cxx_move_new(this, that)
+                    self::ffi::cxx_move_new(this, that);
                 }
             }
         })
@@ -532,8 +532,15 @@ fn emit_impl_partial_ord(
         } else {
             None
         };
-        Some(syn::parse_quote! {
-            impl #generics_binder ::core::cmp::PartialOrd for #ident #generics {
+        let partial_cmp: syn::ImplItemFn = if info.is_rust_ord {
+            syn::parse_quote! {
+                #[inline]
+                fn partial_cmp(&self, other: &Self) -> Option<::core::cmp::Ordering> {
+                    Some(self.cmp(other))
+                }
+            }
+        } else {
+            syn::parse_quote! {
                 #[inline]
                 fn partial_cmp(&self, other: &Self) -> Option<::core::cmp::Ordering> {
                     let res = self::ffi::cxx_operator_three_way_comparison(self, other);
@@ -548,6 +555,11 @@ fn emit_impl_partial_ord(
                         None
                     }
                 }
+            }
+        };
+        Some(syn::parse_quote! {
+            impl #generics_binder ::core::cmp::PartialOrd for #ident #generics {
+                #partial_cmp
                 #lt
                 #le
                 #gt

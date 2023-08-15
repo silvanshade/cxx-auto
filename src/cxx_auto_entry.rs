@@ -45,7 +45,7 @@ impl<'ctx> CxxAutoEntry<'ctx> {
                     let cxx_namespace = #cxx_namespace;
                     let cxx_name = #cxx_name;
                     let rust_name = #rust_name;
-                    let lifetimes = ::cxx_auto::indexmap::IndexMap::from_iter([#(#lifetimes),*].into_iter());
+                    let lifetimes = ::cxx_auto::indexmap::IndexMap::from_iter([#(#lifetimes),*]);
                     let align = self::ffi::cxx_abi_align();
                     let size = self::ffi::cxx_abi_size();
                     let cxx_has_operator_equal = self::ffi::cxx_has_operator_equal();
@@ -134,40 +134,75 @@ impl<'ctx> CxxAutoEntry<'ctx> {
                     #namespace
                     unsafe extern "C++" {
                         include!(#include);
+                        #[must_use]
                         fn cxx_abi_align() -> usize;
+                        #[must_use]
                         fn cxx_abi_size() -> usize;
+                        #[must_use]
                         fn cxx_is_copy_constructible() -> bool;
+                        #[must_use]
                         fn cxx_is_move_constructible() -> bool;
+                        #[must_use]
                         fn cxx_is_default_constructible() -> bool;
+                        #[must_use]
                         fn cxx_is_destructible() -> bool;
+                        #[must_use]
                         fn cxx_is_trivially_copyable() -> bool;
+                        #[must_use]
                         fn cxx_is_trivially_movable() -> bool;
+                        #[must_use]
                         fn cxx_is_trivially_destructible() -> bool;
+                        #[must_use]
                         fn cxx_is_equality_comparable() -> bool;
+                        #[must_use]
                         fn cxx_has_operator_equal() -> bool;
+                        #[must_use]
                         fn cxx_has_operator_not_equal() -> bool;
+                        #[must_use]
                         fn cxx_has_operator_less_than() -> bool;
+                        #[must_use]
                         fn cxx_has_operator_less_than_or_equal() -> bool;
+                        #[must_use]
                         fn cxx_has_operator_greater_than() -> bool;
+                        #[must_use]
                         fn cxx_has_operator_greater_than_or_equal() -> bool;
+                        #[must_use]
                         fn cxx_is_partially_ordered() -> bool;
+                        #[must_use]
                         fn cxx_is_totally_ordered() -> bool;
+                        #[must_use]
                         fn cxx_is_hashable() -> bool;
+                        #[must_use]
                         fn rust_should_impl_cxx_extern_type_trivial() -> bool;
+                        #[must_use]
                         fn rust_should_impl_unpin() -> bool;
+                        #[must_use]
                         fn rust_should_impl_send() -> bool;
+                        #[must_use]
                         fn rust_should_impl_sync() -> bool;
+                        #[must_use]
                         fn rust_should_impl_copy() -> bool;
+                        #[must_use]
                         fn rust_should_impl_debug() -> bool;
+                        #[must_use]
                         fn rust_should_impl_default() -> bool;
+                        #[must_use]
                         fn rust_should_impl_display() -> bool;
+                        #[must_use]
                         fn rust_should_impl_drop() -> bool;
+                        #[must_use]
                         fn rust_should_impl_moveref_copy_new() -> bool;
+                        #[must_use]
                         fn rust_should_impl_moveref_move_new() -> bool;
+                        #[must_use]
                         fn rust_should_impl_eq() -> bool;
+                        #[must_use]
                         fn rust_should_impl_partial_eq() -> bool;
+                        #[must_use]
                         fn rust_should_impl_partial_ord() -> bool;
+                        #[must_use]
                         fn rust_should_impl_ord() -> bool;
+                        #[must_use]
                         fn rust_should_impl_hash() -> bool;
                     }
                 }
