@@ -313,7 +313,17 @@
 <a href="#313" id="313">313</a>
 <a href="#314" id="314">314</a>
 <a href="#315" id="315">315</a>
-</pre></div><pre class="rust"><code><span class="attr">#[allow(non_camel_case_types)]
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
+<a href="#323" id="323">323</a>
+<a href="#324" id="324">324</a>
+</pre></div><pre class="rust"><code><span class="attr">#[allow(clippy::unsafe_derive_deserialize)]
+#[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Default, Eq, PartialEq, PartialOrd, Ord, Hash, serde::Deserialize, serde::Serialize)]
 #[cfg_attr(feature = <span class="string">&quot;bytemuck&quot;</span>, derive(bytemuck::Pod, bytemuck::Zeroable))]
 #[repr(transparent)]
@@ -324,7 +334,8 @@
 <span class="kw">impl </span>::core::fmt::Debug <span class="kw">for </span>c_char {
     <span class="attr">#[inline]
     </span><span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>::core::fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; ::core::fmt::Result {
-        <span class="kw">let </span>value = <span class="self">self</span>.value <span class="kw">as </span>u8 <span class="kw">as </span>::core::primitive::char;
+        <span class="attr">#[allow(clippy::cast_sign_loss)]
+        </span><span class="kw">let </span>value = <span class="self">self</span>.value <span class="kw">as </span>u8 <span class="kw">as </span>::core::primitive::char;
         ::core::fmt::Debug::fmt(<span class="kw-2">&amp;</span>value, f)
     }
 }
@@ -332,7 +343,8 @@
 <span class="kw">impl </span>::core::fmt::Display <span class="kw">for </span>c_char {
     <span class="attr">#[inline]
     </span><span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>::core::fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; ::core::fmt::Result {
-        <span class="kw">let </span>value = <span class="self">self</span>.value <span class="kw">as </span>u8 <span class="kw">as </span>::core::primitive::char;
+        <span class="attr">#[allow(clippy::cast_sign_loss)]
+        </span><span class="kw">let </span>value = <span class="self">self</span>.value <span class="kw">as </span>u8 <span class="kw">as </span>::core::primitive::char;
         ::core::fmt::Display::fmt(<span class="kw-2">&amp;</span>value, f)
     }
 }
@@ -366,26 +378,31 @@
 <span class="kw">impl </span>From&lt;c_char&gt; <span class="kw">for </span>::core::primitive::char {
     <span class="attr">#[inline]
     </span><span class="kw">fn </span>from(wrapper: c_char) -&gt; <span class="self">Self </span>{
-        wrapper.value <span class="kw">as </span>u8 <span class="kw">as </span>::core::primitive::char
+        <span class="attr">#[allow(clippy::cast_sign_loss)]
+        </span><span class="kw">let </span>value = wrapper.value <span class="kw">as </span>u8 <span class="kw">as </span>::core::primitive::char;
+        value
     }
 }
 
 <span class="kw">impl </span><span class="kw">crate</span>::ffi::ctypes::c_char {
-    <span class="attr">#[inline]
+    <span class="attr">#[must_use]
+    #[inline]
     </span><span class="kw">pub fn </span>from_bytes(bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="kw-2">&amp;</span>[c_char] {
         <span class="kw">let </span>data = bytes.as_ptr().cast::&lt;c_char&gt;();
         <span class="kw">let </span>len = bytes.len();
         <span class="kw">unsafe </span>{ ::core::slice::from_raw_parts(data, len) }
     }
 
-    <span class="attr">#[inline]
+    <span class="attr">#[must_use]
+    #[inline]
     </span><span class="kw">pub fn </span>into_bytes(slice: <span class="kw-2">&amp;</span>[c_char]) -&gt; <span class="kw-2">&amp;</span>[u8] {
         <span class="kw">let </span>data = slice.as_ptr().cast::&lt;u8&gt;();
         <span class="kw">let </span>len = slice.len();
         <span class="kw">unsafe </span>{ ::core::slice::from_raw_parts(data, len) }
     }
 
-    <span class="attr">#[cfg(feature = <span class="string">&quot;std&quot;</span>)]
+    <span class="attr">#[must_use]
+    #[cfg(feature = <span class="string">&quot;std&quot;</span>)]
     #[inline]
     </span><span class="kw">pub fn </span>from_path(path: <span class="kw-2">&amp;</span>std::path::Path) -&gt; <span class="kw-2">&amp;</span>[c_char] {
         <span class="kw">use </span>std::os::unix::ffi::OsStrExt;
@@ -393,7 +410,8 @@
         <span class="self">Self</span>::from_bytes(bytes)
     }
 
-    <span class="attr">#[allow(clippy::should_implement_trait)]
+    <span class="attr">#[must_use]
+    #[allow(clippy::should_implement_trait)]
     #[inline]
     </span><span class="kw">pub fn </span>from_str(str: <span class="kw-2">&amp;</span>str) -&gt; <span class="kw-2">&amp;</span>[c_char] {
         <span class="self">Self</span>::from_bytes(str.as_bytes())

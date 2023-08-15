@@ -829,10 +829,27 @@
 <a href="#829" id="829">829</a>
 <a href="#830" id="830">830</a>
 <a href="#831" id="831">831</a>
+<a href="#832" id="832">832</a>
+<a href="#833" id="833">833</a>
+<a href="#834" id="834">834</a>
+<a href="#835" id="835">835</a>
+<a href="#836" id="836">836</a>
+<a href="#837" id="837">837</a>
+<a href="#838" id="838">838</a>
+<a href="#839" id="839">839</a>
+<a href="#840" id="840">840</a>
+<a href="#841" id="841">841</a>
+<a href="#842" id="842">842</a>
+<a href="#843" id="843">843</a>
+<a href="#844" id="844">844</a>
+<a href="#845" id="845">845</a>
+<a href="#846" id="846">846</a>
+<a href="#847" id="847">847</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>proc_macro2::Span;
 <span class="kw">use </span>syn::punctuated::Punctuated;
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;alloc&quot;</span>)]
+<span class="attr">#[allow(clippy::struct_excessive_bools)]
+#[cfg(feature = <span class="string">&quot;alloc&quot;</span>)]
 </span><span class="kw">pub struct </span>CxxAutoArtifactInfo {
     <span class="kw">pub </span>path_components: ::alloc::vec::Vec&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str&gt;,
     <span class="kw">pub </span>path_descendants: ::alloc::vec::Vec&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str&gt;,
@@ -869,7 +886,8 @@
 
 <span class="attr">#[cfg(feature = <span class="string">&quot;alloc&quot;</span>)]
 </span><span class="kw">impl </span>CxxAutoArtifactInfo {
-    <span class="kw">pub fn </span>emit_file(<span class="kw-2">&amp;</span><span class="self">self</span>, auto_out_dir: <span class="kw-2">&amp;</span>::std::path::Path) -&gt; syn::File {
+    <span class="attr">#[must_use]
+    </span><span class="kw">pub fn </span>emit_file(<span class="kw-2">&amp;</span><span class="self">self</span>, auto_out_dir: <span class="kw-2">&amp;</span>::std::path::Path) -&gt; syn::File {
         <span class="kw">let </span>span = Span::call_site();
         <span class="kw">let </span>ident: <span class="kw-2">&amp;</span>syn::Ident = <span class="kw-2">&amp;</span>syn::Ident::new(<span class="self">self</span>.rust_name, Span::call_site());
         <span class="kw">let </span>align = <span class="kw-2">&amp;</span>proc_macro2::Literal::usize_unsuffixed(<span class="self">self</span>.align);
@@ -926,7 +944,13 @@
         }
     }
 
-    <span class="attr">#[cfg(feature = <span class="string">&quot;std&quot;</span>)]
+    <span class="doccomment">/// # Errors
+    ///
+    /// Will return `Err` under the following circumstances:
+    /// - failure to create the output parent directory for the generated module
+    /// - failure to run `rustfmt` on the generated module
+    /// - failure to write the generated module to disk
+    </span><span class="attr">#[cfg(feature = <span class="string">&quot;std&quot;</span>)]
     </span><span class="kw">pub fn </span>write_module_for_dir(
         auto_out_dir_root: <span class="kw-2">&amp;</span>std::path::Path,
         path_components: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>str],
@@ -965,7 +989,13 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="attr">#[cfg(feature = <span class="string">&quot;std&quot;</span>)]
+    <span class="doccomment">/// # Errors
+    ///
+    /// Will return `Err` under the following circumstances:
+    /// - failure to create the output parent directory for the generated module
+    /// - failure to run `rustfmt` on the generated module
+    /// - failure to write the generated module to disk
+    </span><span class="attr">#[cfg(feature = <span class="string">&quot;std&quot;</span>)]
     </span><span class="kw">pub fn </span>write_module_for_file(<span class="kw-2">&amp;</span><span class="self">self</span>, auto_out_dir_root: <span class="kw-2">&amp;</span>::std::path::Path) -&gt; <span class="kw">crate</span>::BoxResult&lt;()&gt; {
         <span class="kw">use </span>quote::ToTokens;
         <span class="kw">use </span>rust_format::Formatter;
@@ -1038,7 +1068,8 @@
 
 <span class="attr">#[cfg(feature = <span class="string">&quot;alloc&quot;</span>)]
 </span><span class="kw">fn </span>emit_generics(info: <span class="kw-2">&amp;</span>CxxAutoArtifactInfo, all_static: bool) -&gt; (syn::Generics, syn::Generics) {
-    <span class="kw">let </span>span = Span::call_site();
+    <span class="attr">#![allow(clippy::similar_names)]
+    </span><span class="kw">let </span>span = Span::call_site();
     <span class="kw">let </span><span class="kw-2">mut </span>binder_params = Punctuated::&lt;syn::GenericParam, <span class="macro">syn::Token!</span>[,]&gt;::new();
     <span class="kw">let </span><span class="kw-2">mut </span>params = Punctuated::&lt;syn::GenericParam, <span class="macro">syn::Token!</span>[,]&gt;::new();
     <span class="kw">for </span>(name, bounds) <span class="kw">in </span><span class="kw-2">&amp;</span>info.lifetimes {
@@ -1054,7 +1085,7 @@
         }
 
         binder_params.push(syn::GenericParam::from(lifetime_param_binder));
-        params.push(syn::GenericParam::from(lifetime_param))
+        params.push(syn::GenericParam::from(lifetime_param));
     }
     <span class="kw">let </span>lt_token = <span class="kw">if </span>params.is_empty() {
         <span class="prelude-val">None
@@ -1070,14 +1101,14 @@
     (
         syn::Generics {
             lt_token,
-            gt_token,
             params: binder_params,
+            gt_token,
             where_clause: where_clause.clone(),
         },
         syn::Generics {
             lt_token,
-            gt_token,
             params,
+            gt_token,
             where_clause,
         },
     )
@@ -1468,7 +1499,8 @@
     }
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;alloc&quot;</span>)]
+<span class="attr">#[allow(clippy::too_many_lines)]
+#[cfg(feature = <span class="string">&quot;alloc&quot;</span>)]
 </span><span class="kw">fn </span>emit_item_mod_cxx_bridge(info: <span class="kw-2">&amp;</span>CxxAutoArtifactInfo, ident: <span class="kw-2">&amp;</span>syn::Ident, generics: <span class="kw-2">&amp;</span>syn::Generics) -&gt; syn::ItemMod {
     <span class="kw">let </span>cxx_include = <span class="kw-2">&amp;</span>info.cxx_include;
     <span class="kw">let </span>cxx_namespace = <span class="kw-2">&amp;</span>info.cxx_namespace;

@@ -350,7 +350,7 @@
             <span class="kw">let </span><span class="kw-2">mut </span>item_mod_cxx_bridge: ::alloc::vec::Vec&lt;syn::Item&gt; = <span class="macro">::alloc::vec!</span>[];
 
             <span class="kw">if let </span><span class="prelude-val">Some</span>(path) = <span class="kw-2">&amp;</span>path_file {
-                skip_paths.insert(path.to_path_buf());
+                skip_paths.insert(path.clone());
                 <span class="kw">let </span>text = std::fs::read_to_string(path)<span class="question-mark">?</span>;
                 <span class="kw">let </span>data = serde_json::from_str::&lt;<span class="kw">crate</span>::CxxAutoEntry&gt;(<span class="kw-2">&amp;</span>text)<span class="question-mark">?</span>;
                 items_write_module =
@@ -375,9 +375,9 @@
 
             write_auto_sub_module(
                 <span class="kw-2">&amp;</span>auto_sub_module_path.with_extension(<span class="string">&quot;rs&quot;</span>),
-                item_mods,
-                item_mod_cxx_bridge,
-                items_write_module,
+                <span class="kw-2">&amp;</span>item_mods,
+                <span class="kw-2">&amp;</span>item_mod_cxx_bridge,
+                <span class="kw-2">&amp;</span>items_write_module,
             )<span class="question-mark">?</span>;
         }
         process_src_auto_sub_module(
@@ -402,7 +402,7 @@
     skip_paths.insert(path.to_path_buf());
     find_immediate_path_descendants(path, path_descendants)<span class="question-mark">?</span>;
     <span class="kw">let </span>span = Span::call_site();
-    <span class="kw">for </span>descendant <span class="kw">in </span>path_descendants.iter() {
+    <span class="kw">for </span>descendant <span class="kw">in </span><span class="kw-2">&amp;*</span>path_descendants {
         <span class="kw">let </span>ident = syn::Ident::new(descendant, span);
         <span class="kw">let </span>descendant_path = path.join(descendant).with_extension(<span class="string">&quot;rs&quot;</span>);
         <span class="kw">let </span>mod_suffix = descendant_path.strip_prefix(project_dir)<span class="question-mark">?</span>;
@@ -411,7 +411,7 @@
         items.push(<span class="macro">syn::parse_quote! </span>{
             <span class="attr">#[path = #mod_path_string]
             </span><span class="kw">pub mod </span>#ident;
-        })
+        });
     }
     <span class="prelude-val">Ok</span>(())
 }
@@ -502,9 +502,9 @@
 <span class="attr">#[cfg(feature = <span class="string">&quot;std&quot;</span>)]
 </span><span class="kw">fn </span>write_auto_sub_module(
     path: <span class="kw-2">&amp;</span>std::path::Path,
-    item_mods: ::alloc::vec::Vec&lt;syn::ItemMod&gt;,
-    item_mod_cxx_bridge: ::alloc::vec::Vec&lt;syn::Item&gt;,
-    items_write_module: ::alloc::vec::Vec&lt;syn::ItemFn&gt;,
+    item_mods: <span class="kw-2">&amp;</span>[syn::ItemMod],
+    item_mod_cxx_bridge: <span class="kw-2">&amp;</span>[syn::Item],
+    items_write_module: <span class="kw-2">&amp;</span>[syn::ItemFn],
 ) -&gt; BoxResult&lt;()&gt; {
     <span class="kw">let </span>file: syn::File = <span class="macro">syn::parse_quote! </span>{
         #(#item_mods)*
