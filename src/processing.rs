@@ -91,7 +91,7 @@ fn process_src_auto_sub_module(
             let mut item_mod_cxx_bridge: ::alloc::vec::Vec<syn::Item> = ::alloc::vec![];
 
             if let Some(path) = &path_file {
-                skip_paths.insert(path.to_path_buf());
+                skip_paths.insert(path.clone());
                 let text = std::fs::read_to_string(path)?;
                 let data = serde_json::from_str::<crate::CxxAutoEntry>(&text)?;
                 items_write_module =
@@ -116,9 +116,9 @@ fn process_src_auto_sub_module(
 
             write_auto_sub_module(
                 &auto_sub_module_path.with_extension("rs"),
-                item_mods,
-                item_mod_cxx_bridge,
-                items_write_module,
+                &item_mods,
+                &item_mod_cxx_bridge,
+                &items_write_module,
             )?;
         }
         process_src_auto_sub_module(
@@ -143,7 +143,7 @@ fn emit_item_mods_for_path_descendants(
     skip_paths.insert(path.to_path_buf());
     find_immediate_path_descendants(path, path_descendants)?;
     let span = Span::call_site();
-    for descendant in path_descendants.iter() {
+    for descendant in &*path_descendants {
         let ident = syn::Ident::new(descendant, span);
         let descendant_path = path.join(descendant).with_extension("rs");
         let mod_suffix = descendant_path.strip_prefix(project_dir)?;
@@ -152,7 +152,7 @@ fn emit_item_mods_for_path_descendants(
         items.push(syn::parse_quote! {
             #[path = #mod_path_string]
             pub mod #ident;
-        })
+        });
     }
     Ok(())
 }
@@ -243,9 +243,9 @@ fn relativized_components_from_path(path: &std::path::Path) -> BoxResult<::alloc
 #[cfg(feature = "std")]
 fn write_auto_sub_module(
     path: &std::path::Path,
-    item_mods: ::alloc::vec::Vec<syn::ItemMod>,
-    item_mod_cxx_bridge: ::alloc::vec::Vec<syn::Item>,
-    items_write_module: ::alloc::vec::Vec<syn::ItemFn>,
+    item_mods: &[syn::ItemMod],
+    item_mod_cxx_bridge: &[syn::Item],
+    items_write_module: &[syn::ItemFn],
 ) -> BoxResult<()> {
     let file: syn::File = syn::parse_quote! {
         #(#item_mods)*

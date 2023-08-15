@@ -1,3 +1,5 @@
+#![deny(clippy::all)]
+#![deny(clippy::pedantic)]
 #![no_std]
 
 #[cfg(feature = "alloc")]
@@ -41,6 +43,9 @@ pub mod ctypes {
     };
 }
 
+/// # Errors
+///
+/// Will return `Err` if auto-generation of the C++ bindings fails.
 #[cfg(feature = "std")]
 pub fn process_artifacts(
     project_dir: &std::path::Path,

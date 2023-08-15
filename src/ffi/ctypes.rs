@@ -1,3 +1,4 @@
+#[allow(clippy::unsafe_derive_deserialize)]
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Default, Eq, PartialEq, PartialOrd, Ord, Hash, serde::Deserialize, serde::Serialize)]
 #[cfg_attr(feature = "bytemuck", derive(bytemuck::Pod, bytemuck::Zeroable))]
@@ -9,6 +10,7 @@ pub struct c_char {
 impl ::core::fmt::Debug for c_char {
     #[inline]
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        #[allow(clippy::cast_sign_loss)]
         let value = self.value as u8 as ::core::primitive::char;
         ::core::fmt::Debug::fmt(&value, f)
     }
@@ -17,6 +19,7 @@ impl ::core::fmt::Debug for c_char {
 impl ::core::fmt::Display for c_char {
     #[inline]
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        #[allow(clippy::cast_sign_loss)]
         let value = self.value as u8 as ::core::primitive::char;
         ::core::fmt::Display::fmt(&value, f)
     }
@@ -51,11 +54,14 @@ impl From<::core::primitive::char> for c_char {
 impl From<c_char> for ::core::primitive::char {
     #[inline]
     fn from(wrapper: c_char) -> Self {
-        wrapper.value as u8 as ::core::primitive::char
+        #[allow(clippy::cast_sign_loss)]
+        let value = wrapper.value as u8 as ::core::primitive::char;
+        value
     }
 }
 
 impl crate::ffi::ctypes::c_char {
+    #[must_use]
     #[inline]
     pub fn from_bytes(bytes: &[u8]) -> &[c_char] {
         let data = bytes.as_ptr().cast::<c_char>();
@@ -63,6 +69,7 @@ impl crate::ffi::ctypes::c_char {
         unsafe { ::core::slice::from_raw_parts(data, len) }
     }
 
+    #[must_use]
     #[inline]
     pub fn into_bytes(slice: &[c_char]) -> &[u8] {
         let data = slice.as_ptr().cast::<u8>();
@@ -70,6 +77,7 @@ impl crate::ffi::ctypes::c_char {
         unsafe { ::core::slice::from_raw_parts(data, len) }
     }
 
+    #[must_use]
     #[cfg(feature = "std")]
     #[inline]
     pub fn from_path(path: &std::path::Path) -> &[c_char] {
@@ -78,6 +86,7 @@ impl crate::ffi::ctypes::c_char {
         Self::from_bytes(bytes)
     }
 
+    #[must_use]
     #[allow(clippy::should_implement_trait)]
     #[inline]
     pub fn from_str(str: &str) -> &[c_char] {

@@ -15,6 +15,7 @@ pub struct CxxAutoEntry<'ctx> {
 
 #[cfg(feature = "alloc")]
 impl<'ctx> CxxAutoEntry<'ctx> {
+    #[must_use]
     pub fn cxx_name(&self) -> &str {
         self.cxx_name.unwrap_or(self.rust_name)
     }

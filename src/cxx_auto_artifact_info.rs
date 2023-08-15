@@ -1,6 +1,7 @@
 use proc_macro2::Span;
 use syn::punctuated::Punctuated;
 
+#[allow(clippy::struct_excessive_bools)]
 #[cfg(feature = "alloc")]
 pub struct CxxAutoArtifactInfo {
     pub path_components: ::alloc::vec::Vec<&'static str>,
@@ -38,6 +39,7 @@ pub struct CxxAutoArtifactInfo {
 
 #[cfg(feature = "alloc")]
 impl CxxAutoArtifactInfo {
+    #[must_use]
     pub fn emit_file(&self, auto_out_dir: &::std::path::Path) -> syn::File {
         let span = Span::call_site();
         let ident: &syn::Ident = &syn::Ident::new(self.rust_name, Span::call_site());
@@ -95,6 +97,12 @@ impl CxxAutoArtifactInfo {
         }
     }
 
+    /// # Errors
+    ///
+    /// Will return `Err` under the following circumstances:
+    /// - failure to create the output parent directory for the generated module
+    /// - failure to run `rustfmt` on the generated module
+    /// - failure to write the generated module to disk
     #[cfg(feature = "std")]
     pub fn write_module_for_dir(
         auto_out_dir_root: &std::path::Path,
@@ -134,6 +142,12 @@ impl CxxAutoArtifactInfo {
         Ok(())
     }
 
+    /// # Errors
+    ///
+    /// Will return `Err` under the following circumstances:
+    /// - failure to create the output parent directory for the generated module
+    /// - failure to run `rustfmt` on the generated module
+    /// - failure to write the generated module to disk
     #[cfg(feature = "std")]
     pub fn write_module_for_file(&self, auto_out_dir_root: &::std::path::Path) -> crate::BoxResult<()> {
         use quote::ToTokens;
@@ -207,6 +221,7 @@ fn emit_field(name: &str, ty: syn::Type) -> syn::Field {
 
 #[cfg(feature = "alloc")]
 fn emit_generics(info: &CxxAutoArtifactInfo, all_static: bool) -> (syn::Generics, syn::Generics) {
+    #![allow(clippy::similar_names)]
     let span = Span::call_site();
     let mut binder_params = Punctuated::<syn::GenericParam, syn::Token![,]>::new();
     let mut params = Punctuated::<syn::GenericParam, syn::Token![,]>::new();
@@ -223,7 +238,7 @@ fn emit_generics(info: &CxxAutoArtifactInfo, all_static: bool) -> (syn::Generics
         }
 
         binder_params.push(syn::GenericParam::from(lifetime_param_binder));
-        params.push(syn::GenericParam::from(lifetime_param))
+        params.push(syn::GenericParam::from(lifetime_param));
     }
     let lt_token = if params.is_empty() {
         None
@@ -239,14 +254,14 @@ fn emit_generics(info: &CxxAutoArtifactInfo, all_static: bool) -> (syn::Generics
     (
         syn::Generics {
             lt_token,
-            gt_token,
             params: binder_params,
+            gt_token,
             where_clause: where_clause.clone(),
         },
         syn::Generics {
             lt_token,
-            gt_token,
             params,
+            gt_token,
             where_clause,
         },
     )
@@ -637,6 +652,7 @@ fn emit_info_test_module(
     }
 }
 
+#[allow(clippy::too_many_lines)]
 #[cfg(feature = "alloc")]
 fn emit_item_mod_cxx_bridge(info: &CxxAutoArtifactInfo, ident: &syn::Ident, generics: &syn::Generics) -> syn::ItemMod {
     let cxx_include = &info.cxx_include;
