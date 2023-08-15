@@ -81,7 +81,7 @@ SUBCOMMANDS:
                     context.tool_args.extend(default_args.iter().map(Into::into));
                     context.current_dir = Some(config.project_root_dir.clone());
                 }
-                cxx_xtask::command::edit(context, editor, editor_args)
+                cxx_xtask::command::edit(context, &editor, editor_args)
             },
             "doc" => cxx_xtask::command::doc(context),
             "fmt" => cxx_xtask::command::fmt(context),
