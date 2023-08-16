@@ -3,7 +3,7 @@ Checks: "clang-diagnostic-*,clang-analyzer-*,*,-altera-unroll-loops,-bugprone-ea
 WarningsAsErrors: ""
 HeaderFilterRegex: ""
 AnalyzeTemporaryDtors: false
-FormatStyle: none
+FormatStyle: file
 CheckOptions:
   abseil-cleanup-ctad.IncludeStyle: llvm
   abseil-string-find-startswith.AbseilStringsMatchHeader: "absl/strings/match.h"
