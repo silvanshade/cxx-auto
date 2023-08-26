@@ -1,0 +1,11 @@
+{
+  "analyze": [
+    "--analyzers",
+    "clangsa",
+    "clang-tidy",
+    "--file",
+    "*/cxx",
+    "--ignore",
+    ".codecheckerignore"
+  ]
+}

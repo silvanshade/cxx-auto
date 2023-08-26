@@ -1,49 +1,80 @@
 # NOTE: run with `cmake -G Ninja -S . -B build && cmake --build build`
 
-cmake_minimum_required(VERSION 3.22.1)
+cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
 
-project(cxx-auto LANGUAGES CXX)
+set(CMAKE_COLOR_DIAGNOSTICS ON)
 
-# export CMake configuration to compile_commands.json for IDE support
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-# ensure that the C++ compiler is `clang++-16`
-if(UNIX)
-  find_program(CLANG_CXX_COMPILER clang++-16)
-  if(NOT CLANG_CXX_COMPILER)
-    if(APPLE)
-      set(CLANG_CXX_COMPILER "/opt/homebrew/opt/llvm@16/bin/clang++")
-    endif()
-  endif()
-  if(NOT CLANG_CXX_COMPILER)
-    message(FATAL_ERROR "Could not find `clang++-16`")
-  endif()
+# include support definitions
+if(EXISTS "${CMAKE_SOURCE_DIR}/cmake/cxx-auto-cmake/Support.cmake")
+  include("${CMAKE_SOURCE_DIR}/cmake/cxx-auto-cmake/Support.cmake")
+else()
+  message(FATAL_ERROR
+    "\"cxx-auto-cmake/Support.cmake\" not found.\n"
+    "Try `git submodule update --init` to fetch the cmake support files.")
 endif()
 
-message (STATUS "Detected clang++: ${CLANG_CXX_COMPILER}")
-set(CMAKE_CXX_COMPILER ${CLANG_CXX_COMPILER})
+cxxAutoPreInit()
 
-add_library(cxx-auto STATIC
-  cxx/lib/cmake.cxx
-)
-target_include_directories(cxx-auto PUBLIC
-  ../cxx-auto/..
-  target/cxxbridge
-)
-target_compile_definitions(cxx-auto PUBLIC _LIBCPP_ENABLE_THREAD_SAFETY_ANNOTATIONS)
-target_compile_options(cxx-auto PUBLIC
-  -fno-rtti # needed to avoid "undefined reference to `typeinfo for [...]`" errors
-  -std=gnu++20
-  -Werror
-  -Wall
-  -Wextra
-  -Wthread-safety
-  -Wthread-safety-beta
-  -pedantic
-  -Wno-ambiguous-reversed-operator
-  -Wno-deprecated-anon-enum-enum-conversion
-  -Wno-deprecated-builtins
-  -Wno-dollar-in-identifier-extension
-  -Wno-nested-anon-types
-  -Wno-unused-parameter
-)
+project(cxx-auto
+  LANGUAGES C CXX)
+
+cxxAutoPostInit()
+
+# export CMake configuration to `compile_commands.json` for IDE support
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# configure the include dirs
+list(APPEND TARGET_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/../cxx-auto/..)
+list(APPEND TARGET_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/target/cxxbridge)
+
+# configure the umbrella path
+set(TARGET_UMBRELLA_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/cxx)
+
+# configure the umbrella path
+set(TARGET_UMBRELLA_PATH ${CMAKE_SOURCE_DIR}/cxx/lib/umbrella.cxx)
+
+# configure the umbrella include prefix
+set(TARGET_UMBRELLA_INCLUDE_PREFIX "cxx-auto/cxx/")
+
+# configure the default target
+add_library(cxx-auto STATIC ${TARGET_UMBRELLA_PATH})
+target_include_directories(cxx-auto PUBLIC ${TARGET_INCLUDE_DIRS})
+target_compile_definitions(cxx-auto PUBLIC ${CXX_AUTO_CONTEXT_COMPILE_DEFINITIONS})
+target_compile_options(cxx-auto PUBLIC ${CXX_AUTO_CONTEXT_COMPILE_OPTIONS})
+
+add_custom_target(generate_rust_cxx_header
+  BYPRODUCTS ${CMAKE_SOURCE_DIR}/target/cxxbridge/rust/cxx.h
+  COMMAND cargo build
+  VERBATIM
+  USES_TERMINAL)
+add_dependencies(cxx-auto generate_rust_cxx_header)
+
+add_custom_target(generate_umbrella
+  BYPRODUCTS ${CMAKE_SOURCE_DIR}/cxx/lib/umbrella.cxx
+  COMMAND ${CMAKE_COMMAND}
+    -D "TARGET_UMBRELLA_PATH=${TARGET_UMBRELLA_PATH}"
+    -D "TARGET_UMBRELLA_INCLUDE_DIRS=${TARGET_UMBRELLA_INCLUDE_DIRS}"
+    -D "TARGET_UMBRELLA_INCLUDE_PREFIX=${TARGET_UMBRELLA_INCLUDE_PREFIX}"
+    -P ${CMAKE_SOURCE_DIR}/cmake/cxx-auto-cmake/command/EmitUmbrella.cmake
+  VERBATIM
+  USES_TERMINAL)
+add_dependencies(cxx-auto generate_umbrella)
+
+foreach(variable ${CXX_AUTO_CONTEXT_VARIABLES})
+  set(_definiendum ${variable})
+  list(JOIN ${variable} "\\\;" _definiens)
+  list(APPEND CXX_AUTO_CONTEXT_DEFINITIONS "-D${_definiendum}=${_definiens}")
+endforeach()
+set(_definiendum "CXX_AUTO_CONTEXT_VARIABLES")
+list(JOIN CXX_AUTO_CONTEXT_VARIABLES "\\\;" _definiens)
+list(APPEND CXX_AUTO_CONTEXT_DEFINITIONS "-D${_definiendum}=${_definiens}")
+unset(_definiens)
+unset(_definiendum)
+
+# define custom target to emit the CMake context for Rust
+add_custom_target(emit_cxx_auto_context
+  COMMAND ${CMAKE_COMMAND}
+    ${CXX_AUTO_CONTEXT_DEFINITIONS}
+    -P ${CMAKE_SOURCE_DIR}/cmake/cxx-auto-cmake/command/EmitContext.cmake
+  VERBATIM
+  USES_TERMINAL)

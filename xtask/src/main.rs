@@ -1,9 +1,11 @@
 #![deny(clippy::all)]
 #![deny(unsafe_code)]
 
-use cxx_xtask::command::Context;
+use cxx_auto_xtask as xtask;
 
-fn main() -> cxx_xtask::BoxResult<()> {
+// FIXME: implement `xtask codecheck` subcommand
+
+fn main() -> xtask::BoxResult<()> {
     let help = r#"
 xtask
 
@@ -18,9 +20,9 @@ SUBCOMMANDS:
     check
     clang
     clippy
+    codecheck
     cmake
     doc
-    edit [EDITOR]
     fmt
     help                Prints this message
     init
@@ -32,8 +34,7 @@ SUBCOMMANDS:
 "#
     .trim();
 
-    let project_root = cxx_xtask::workspace::project_root()?;
-    let config = cxx_xtask::config::Config::load(&project_root)?;
+    let config = xtask::config::Config::load()?;
 
     let mut args: Vec<_> = std::env::args_os().collect();
     // remove "xtask" argument
@@ -47,57 +48,50 @@ SUBCOMMANDS:
         Vec::new()
     };
 
-    let mut args = cxx_xtask::pico_args::Arguments::from_vec(args);
+    let mut args = xtask::pico_args::Arguments::from_vec(args);
 
     let subcommand = args.subcommand()?;
     if let Some(subcommand) = subcommand.as_deref() {
-        let mut context = Context::new(&config, &mut args, tool_args);
+        let mut context = xtask::command::Context::new(&config, &mut args, tool_args);
         let result = match subcommand {
-            "build" => cxx_xtask::command::build(context),
-            "check" => cxx_xtask::command::check(context),
+            "build" => xtask::command::build(context),
+            "check" => xtask::command::check(context),
             "clang" => {
-                let subcommand: String = context.args.free_from_str()?;
-                if context.tool_args.is_empty() {
-                    let default_args: &[&str] = match &*subcommand {
-                        "format" => &["-r", "./cxx"],
-                        "tidy" => &["-p", "build", "-quiet", "./cxx"],
-                        _ => &[],
-                    };
-                    context.tool_args.extend(default_args.iter().map(Into::into));
-                    context.current_dir = Some(config.project_root_dir.clone());
+                if let Some(subcommand) = context.args.opt_free_from_str::<String>()? {
+                    if context.tool_args.is_empty() {
+                        let default_args: &[&str] = match &*subcommand {
+                            "format" => &["-r", "./cxx"],
+                            "tidy" => &["-p", "build", "-quiet", "./cxx"],
+                            _ => &[],
+                        };
+                        context.tool_args.extend(default_args.iter().map(Into::into));
+                        context.current_dir = Some(config.cargo_metadata.workspace_root.clone());
+                    }
+                    context.subcommand = Some(subcommand);
+                    xtask::command::clang(context)
+                } else {
+                    let help = xtask::command::clang::help();
+                    println!("{help}\n");
+                    Ok(None)
                 }
-                context.subcommand = Some(subcommand);
-                cxx_xtask::command::clang(context)
             },
-            "clippy" => cxx_xtask::command::clippy(context),
-            "cmake" => cxx_xtask::command::cmake(context),
-            "edit" => {
-                let (editor, editor_args) = cxx_xtask::detection::detect_editor(context.args)?;
-                if context.tool_args.is_empty() {
-                    let default_args: &[&str] = match &*editor {
-                        "code" | "code-insiders" => &["./cxx-auto.code-workspace"],
-                        _ => &[],
-                    };
-                    context.tool_args.extend(default_args.iter().map(Into::into));
-                    context.current_dir = Some(config.project_root_dir.clone());
-                }
-                cxx_xtask::command::edit(context, &editor, editor_args)
-            },
-            "doc" => cxx_xtask::command::doc(context),
-            "fmt" => cxx_xtask::command::fmt(context),
-            "miri" => cxx_xtask::command::miri(context),
-            "tarpaulin" => cxx_xtask::command::tarpaulin(context),
-            "test" => cxx_xtask::command::test(context),
-            "udeps" => cxx_xtask::command::udeps(context),
-            "valgrind" => cxx_xtask::command::valgrind(context),
+            "clippy" => xtask::command::clippy(context),
+            "cmake" => xtask::command::cmake(context),
+            "doc" => xtask::command::doc(context),
+            "fmt" => xtask::command::fmt(context),
+            "miri" => xtask::command::miri(context),
+            "tarpaulin" => xtask::command::tarpaulin(context),
+            "test" => xtask::command::test(context),
+            "udeps" => xtask::command::udeps(context),
+            "valgrind" => xtask::command::valgrind(context),
             "help" => {
                 println!("{help}\n");
                 Ok(None)
             },
             subcommand => Err(format!("unrecognized subcommand `{subcommand}`").into()),
         };
-        cxx_xtask::handler::subcommand_result(subcommand, result);
-        cxx_xtask::handler::result(cxx_xtask::handler::unused(&args));
+        xtask::handler::subcommand_result(subcommand, result);
+        xtask::handler::result(xtask::handler::unused(&args));
     } else {
         println!("{help}\n");
     }

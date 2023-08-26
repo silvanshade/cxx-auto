@@ -46,15 +46,17 @@ jobs:
   cargo-clippy:
     runs-on: ubuntu-latest
     steps:
-      - run: |
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          echo "deb     http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" | sudo tee --append /etc/apt/sources.list.d/llvm.list
-          echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" | sudo tee --append /etc/apt/sources.list.d/llvm.list
-          sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/llvm.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
-      - uses: awalsh128/cache-apt-pkgs-action@latest
+      - id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+      - id: cache-homebrew-bundler-gems
+        uses: actions/cache@v1
         with:
-          packages: clang-16 clang-format-16 clang-tidy-16 clang-tools-16 clangd-16 libclang-16-dev libclang-common-16-dev libclang1-16
-          version: 1.0
+          path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          key: ${{ runner.os }}-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+          restore-keys: ${{ runner.os }}-rubygems-
+      - if: steps.cache-homebrew-bundler-gems.outputs.cache-hit != 'true'
+        run: brew install-bundler-gems
+      - run: brew install llvm@${LLVM_VERSION}
       - uses: actions/checkout@v3
       - run: echo "RUST_NIGHTLY_TOOLCHAIN=$(awk '/^channel\s*=\s*".*"$/ { print gensub(/"(.*)"/, "\\1", "g", $3); }' rust-toolchain.toml)" >> $GITHUB_ENV
       - uses: dtolnay/rust-toolchain@stable
@@ -74,15 +76,17 @@ jobs:
     permissions:
       contents: write
     steps:
-      - run: |
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          echo "deb     http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" | sudo tee --append /etc/apt/sources.list.d/llvm.list
-          echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" | sudo tee --append /etc/apt/sources.list.d/llvm.list
-          sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/llvm.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
-      - uses: awalsh128/cache-apt-pkgs-action@latest
+      - id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+      - id: cache-homebrew-bundler-gems
+        uses: actions/cache@v1
         with:
-          packages: clang-16 clang-format-16 clang-tidy-16 clang-tools-16 clangd-16 libclang-16-dev libclang-common-16-dev libclang1-16
-          version: 1.0
+          path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          key: ${{ runner.os }}-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+          restore-keys: ${{ runner.os }}-rubygems-
+      - if: steps.cache-homebrew-bundler-gems.outputs.cache-hit != 'true'
+        run: brew install-bundler-gems
+      - run: brew install llvm@${LLVM_VERSION}
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
@@ -99,19 +103,17 @@ jobs:
         os: [macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - if: matrix.os == 'macos-latest'
-        run: brew install llvm@16
-      - if: matrix.os == 'ubuntu-latest'
-        run: |
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          echo "deb     http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" | sudo tee --append /etc/apt/sources.list.d/llvm.list
-          echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" | sudo tee --append /etc/apt/sources.list.d/llvm.list
-          sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/llvm.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
-      - if: matrix.os == 'ubuntu-latest'
-        uses: awalsh128/cache-apt-pkgs-action@latest
+      - id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+      - id: cache-homebrew-bundler-gems
+        uses: actions/cache@v1
         with:
-          packages: clang-16 clang-format-16 clang-tidy-16 clang-tools-16 clangd-16 libclang-16-dev libclang-common-16-dev libclang1-16
-          version: 1.0
+          path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          key: ${{ runner.os }}-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+          restore-keys: ${{ runner.os }}-rubygems-
+      - if: steps.cache-homebrew-bundler-gems.outputs.cache-hit != 'true'
+        run: brew install-bundler-gems
+      - run: brew install llvm@${LLVM_VERSION}
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
@@ -120,15 +122,17 @@ jobs:
   clang-format:
     runs-on: ubuntu-latest
     steps:
-      - run: |
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          echo "deb     http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" | sudo tee --append /etc/apt/sources.list.d/llvm.list
-          echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" | sudo tee --append /etc/apt/sources.list.d/llvm.list
-          sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/llvm.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
-      - uses: awalsh128/cache-apt-pkgs-action@latest
+      - id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+      - id: cache-homebrew-bundler-gems
+        uses: actions/cache@v1
         with:
-          packages: clang-16 clang-format-16 clang-tidy-16 clang-tools-16 clangd-16 libclang-16-dev libclang-common-16-dev libclang1-16
-          version: 1.0
+          path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          key: ${{ runner.os }}-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+          restore-keys: ${{ runner.os }}-rubygems-
+      - if: steps.cache-homebrew-bundler-gems.outputs.cache-hit != 'true'
+        run: brew install-bundler-gems
+      - run: brew install llvm@${LLVM_VERSION}
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
@@ -137,15 +141,17 @@ jobs:
   clang-tidy:
     runs-on: ubuntu-latest
     steps:
-      - run: |
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          echo "deb     http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" | sudo tee --append /etc/apt/sources.list.d/llvm.list
-          echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" | sudo tee --append /etc/apt/sources.list.d/llvm.list
-          sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/llvm.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
-      - uses: awalsh128/cache-apt-pkgs-action@latest
+      - id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+      - id: cache-homebrew-bundler-gems
+        uses: actions/cache@v1
         with:
-          packages: clang-16 clang-format-16 clang-tidy-16 clang-tools-16 clangd-16 libclang-16-dev libclang-common-16-dev libclang1-16 ninja-build
-          version: 1.0
+          path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          key: ${{ runner.os }}-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+          restore-keys: ${{ runner.os }}-rubygems-
+      - if: steps.cache-homebrew-bundler-gems.outputs.cache-hit != 'true'
+        run: brew install-bundler-gems
+      - run: brew install llvm@${LLVM_VERSION}
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
