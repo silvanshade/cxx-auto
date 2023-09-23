@@ -1,3 +1,3 @@
 (function() {var implementors = {
-"cxx_auto":[["impl <a class=\"trait\" href=\"https://docs.rs/cxx/1.0.105/cxx/cxx_vector/trait.VectorElement.html\" title=\"trait cxx::cxx_vector::VectorElement\">VectorElement</a> for <a class=\"struct\" href=\"cxx_auto/ctypes/struct.c_char.html\" title=\"struct cxx_auto::ctypes::c_char\">c_char</a>"]]
+"cxx_auto":[["impl <a class=\"trait\" href=\"https://docs.rs/cxx/1.0.107/cxx/cxx_vector/trait.VectorElement.html\" title=\"trait cxx::cxx_vector::VectorElement\">VectorElement</a> for <a class=\"struct\" href=\"cxx_auto/ctypes/struct.c_char.html\" title=\"struct cxx_auto::ctypes::c_char\">c_char</a>"]]
 };if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
